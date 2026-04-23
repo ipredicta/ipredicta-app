@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iPredicta — Members</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ─── RESET & BASE ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #080d1a;
+  --surface:    #0d1526;
+  --surface-2:  #152038;
+  --surface-3:  #1a2845;
+  --blue:       #2979e8;
+  --blue-light: #4fb3f6;
+  --blue-pale:  rgba(41,121,232,.12);
+  --blue-glow:  rgba(41,121,232,.25);
+  --green:      #00b87a;
+  --green-pale: rgba(0,184,122,.12);
+  --red:        #e8364a;
+  --red-pale:   rgba(232,54,74,.12);
+  --amber:      #f59e0b;
+  --white:      #ffffff;
+  --text:       rgba(255,255,255,.92);
+  --text-mid:   rgba(255,255,255,.58);
+  --text-light: rgba(255,255,255,.32);
+  --border:     rgba(255,255,255,.07);
+  --border-2:   rgba(255,255,255,.13);
+  --radius:     14px;
+  --radius-sm:  8px;
+  --sidebar-w:  230px;
+  --header-h:   60px;
+  --shadow:     0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:  0 8px 40px rgba(0,0,0,.6);
+  --transition: .18s ease;
+}
+html, body {
+  height: 100%; font-family: 'DM Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { font-family: 'Syne', sans-serif; letter-spacing: -.02em; }
+a { color: var(--blue); text-decoration: none; }
+button { font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; outline: none; }
+input, select, textarea { font-family: 'DM Sans', sans-serif; }
+
+/* ─── UTILITY ──────────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ─── SCROLLBAR ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+
+/* ─── TOAST ────────────────────────────────────────────────────────────────── */
+#toast-container {
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.toast {
+  padding: 12px 18px; border-radius: var(--radius-sm);
+  font-size: .85rem; font-weight: 500; pointer-events: auto;
+  animation: toastIn .25s ease; max-width: 320px; line-height: 1.45;
+  border: 1px solid transparent;
+}
+.toast.success { background: var(--green-pale); border-color: var(--green); color: var(--green); }
+.toast.error   { background: var(--red-pale);   border-color: var(--red);   color: var(--red);   }
+.toast.info    { background: var(--blue-pale);   border-color: var(--blue);  color: var(--blue-light); }
+@keyframes toastIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ─── SPINNER ──────────────────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--border-2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .7s linear infinite; display: inline-block;
+}
+.spinner-lg { width: 36px; height: 36px; border-width: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-center {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px; gap: 12px; color: var(--text-mid); font-size: .875rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   AUTH SCREEN
+════════════════════════════════════════════════════════════════════════════ */
+#app-auth {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px; position: relative; overflow: hidden;
+}
+#app-auth::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(41,121,232,.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-card {
+  width: 100%; max-width: 420px; position: relative; z-index: 1;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 20px; padding: 40px 36px; box-shadow: var(--shadow-lg);
+}
+.auth-logo {
+  text-align: center; margin-bottom: 32px;
+}
+.auth-logo-mark {
+  font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800;
+  letter-spacing: -.04em; display: inline-flex; align-items: center; gap: 2px;
+}
+.auth-logo-mark .i { color: var(--blue); }
+.auth-logo-mark .predicta { color: var(--white); }
+.auth-logo-sub {
+  font-size: .72rem; color: var(--text-mid); margin-top: 4px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.auth-heading {
+  font-size: 1.4rem; font-weight: 800; color: var(--white);
+  margin-bottom: 6px; text-align: center;
+}
+.auth-sub {
+  font-size: .875rem; color: var(--text-mid); text-align: center; margin-bottom: 28px;
+}
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-size: .78rem; font-weight: 600; color: var(--text-mid);
+  margin-bottom: 7px; letter-spacing: .04em; text-transform: uppercase;
+}
+.form-input {
+  width: 100%; padding: 12px 15px; background: var(--surface-2);
+  border: 1.5px solid var(--border-2); border-radius: var(--radius-sm);
+  color: var(--white); font-size: .9rem; transition: border-color var(--transition);
+}
+.form-input:focus { outline: none; border-color: var(--blue); background: var(--surface-3); }
+.form-input::placeholder { color: var(--text-light); }
+.btn-primary {
+  width: 100%; padding: 13px; background: var(--blue); color: var(--white);
+  font-weight: 700; font-size: .9rem; border-radius: var(--radius-sm);
+  transition: all var(--transition); display: flex; align-items: center;
+  justify-content: center; gap: 8px; margin-top: 8px;
+}
+.btn-primary:hover:not(:disabled) { background: #3a8af8; transform: translateY(-1px); box-shadow: 0 4px 16px var(--blue-glow); }
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.auth-toggle {
+  text-align: center; margin-top: 20px; font-size: .85rem; color: var(--text-mid);
+}
+.auth-toggle button {
+  background: none; color: var(--blue); font-weight: 600; font-size: .85rem;
+  padding: 0; margin-left: 4px; transition: color var(--transition);
+}
+.auth-toggle button:hover { color: var(--blue-light); }
+.auth-error {
+  background: var(--red-pale); border: 1px solid var(--red); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: .83rem; color: var(--red); margin-bottom: 16px; display: none;
+}
+.auth-success {
+  text-align: center; padding: 8px 0;
+}
+.auth-success-icon {
+  width: 56px; height: 56px; background: var(--green-pale); border: 2px solid var(--green);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 1.5rem;
+}
+.auth-success h3 { font-size: 1.2rem; color: var(--white); margin-bottom: 8px; }
+.auth-success p { font-size: .875rem; color: var(--text-mid); line-height: 1.6; }
+.auth-success .back-link {
+  display: inline-block; margin-top: 20px; font-size: .83rem; color: var(--blue); font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   APP SHELL
+════════════════════════════════════════════════════════════════════════════ */
+#app-shell {
+  display: flex; min-height: 100vh;
+}
+
+/* ─── SIDEBAR ──────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0;
+  height: 100vh; z-index: 100; transition: transform var(--transition);
+  overflow: hidden;
+}
+.sidebar-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800;
+  letter-spacing: -.03em; display: flex; align-items: center; gap: 2px;
+}
+.logo-mark .i { color: var(--blue); }
+.logo-mark .predicta { color: var(--white); }
+.logo-badge {
+  display: inline-block; margin-top: 3px; font-size: .62rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--blue);
+  background: var(--blue-pale); border-radius: 4px; padding: 2px 7px;
+}
+.sidebar-nav {
+  flex: 1; padding: 12px 10px; overflow-y: auto;
+}
+.nav-section-label {
+  font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-light); padding: 14px 10px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  border-radius: var(--radius-sm); font-size: .875rem; font-weight: 500;
+  color: var(--text-mid); cursor: pointer; transition: all var(--transition);
+  user-select: none; border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item svg { flex-shrink: 0; opacity: .65; transition: opacity var(--transition); }
+.nav-item:hover { color: var(--white); background: var(--surface-2); }
+.nav-item:hover svg { opacity: 1; }
+.nav-item.active { color: var(--blue-light); background: var(--blue-pale); }
+.nav-item.active svg { opacity: 1; }
+.nav-badge {
+  margin-left: auto; background: var(--blue); color: var(--white);
+  font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 100px; min-width: 20px;
+  text-align: center;
+}
+.sidebar-footer {
+  border-top: 1px solid var(--border); padding: 16px 14px;
+}
+.user-info {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.user-avatar {
+  width: 34px; height: 34px; background: var(--blue-pale); border: 1.5px solid var(--blue-glow);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: .8rem; font-weight: 800; color: var(--blue);
+  flex-shrink: 0;
+}
+.user-email {
+  font-size: .78rem; color: var(--text-mid); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.btn-logout {
+  width: 100%; padding: 9px; background: none; border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm); color: var(--text-mid); font-size: .8rem;
+  font-weight: 600; transition: all var(--transition); display: flex;
+  align-items: center; justify-content: center; gap: 7px;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); background: var(--red-pale); }
+
+/* ─── MOBILE HEADER ────────────────────────────────────────────────────────── */
+.mobile-header {
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  align-items: center; justify-content: space-between; padding: 0 18px;
+  z-index: 200;
+}
+.mobile-logo { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; letter-spacing: -.03em; }
+.mobile-logo .i { color: var(--blue); }
+.hamburger {
+  background: none; border: none; padding: 4px; display: flex; flex-direction: column;
+  gap: 5px; cursor: pointer;
+}
+.ham-line {
+  width: 22px; height: 2px; background: var(--text-mid); border-radius: 2px;
+  transition: all var(--transition);
+}
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 90; backdrop-filter: blur(2px);
+}
+.sidebar-overlay.show { display: block; }
+
+/* ─── MOBILE BOTTOM NAV ─────────────────────────────────────────────────────── */
+.mobile-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+.mobile-nav-inner {
+  display: flex; justify-content: space-around; align-items: center;
+}
+.mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; color: var(--text-light); font-size: .65rem;
+  font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  cursor: pointer; padding: 4px 10px; transition: color var(--transition);
+  flex: 1;
+}
+.mobile-nav-item svg { transition: all var(--transition); }
+.mobile-nav-item.active { color: var(--blue-light); }
+.mobile-nav-item.active svg { filter: drop-shadow(0 0 4px var(--blue)); }
+
+/* ─── MAIN CONTENT ─────────────────────────────────────────────────────────── */
+.main-content {
+  flex: 1; margin-left: var(--sidebar-w); padding: 32px 36px;
+  min-height: 100vh; overflow-x: hidden;
+}
+.view { display: none; }
+.view.active { display: block; }
+.view-header { margin-bottom: 28px; }
+.view-title {
+  font-size: 1.6rem; font-weight: 800; color: var(--white); margin-bottom: 4px;
+}
+.view-sub { font-size: .875rem; color: var(--text-mid); }
+
+/* ─── CARDS & GRIDS ─────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+}
+.card-sm { padding: 18px; }
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px; position: relative; overflow: hidden;
+  transition: border-color var(--transition);
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--blue-light));
+}
+.stat-card:hover { border-color: var(--border-2); }
+.stat-icon {
+  width: 38px; height: 38px; border-radius: 9px; background: var(--blue-pale);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+}
+.stat-icon.green { background: var(--green-pale); }
+.stat-icon.amber { background: rgba(245,158,11,.12); }
+.stat-icon.purple { background: rgba(139,92,246,.12); }
+.stat-val {
+  font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
+  color: var(--white); letter-spacing: -.04em; line-height: 1;
+}
+.stat-label { font-size: .78rem; color: var(--text-mid); margin-top: 4px; font-weight: 500; }
+.stat-sub {
+  font-size: .72rem; color: var(--text-light); margin-top: 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+.dot.red { background: var(--red); }
+.dot.amber { background: var(--amber); }
+
+/* ─── MARKET CARDS ──────────────────────────────────────────────────────────── */
+.markets-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+}
+.market-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; transition: all var(--transition);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.market-card:hover { border-color: var(--border-2); transform: translateY(-2px); box-shadow: var(--shadow); }
+.market-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.market-source {
+  font-size: .68rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 100px;
+}
+.source-poly { background: rgba(99,102,241,.15); color: #8b8ef7; border: 1px solid rgba(99,102,241,.25); }
+.source-kalshi { background: var(--blue-pale); color: var(--blue-light); border: 1px solid var(--blue-glow); }
+.market-prob {
+  font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800;
+}
+.market-title { font-size: .88rem; font-weight: 600; color: var(--text); line-height: 1.45; }
+.prob-bar-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.prob-bar { height: 4px; border-radius: 2px; transition: width .4s ease; }
+.market-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .72rem; color: var(--text-light); margin-top: 4px;
+}
+.market-link {
+  font-size: .75rem; font-weight: 600; color: var(--blue); margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.market-link:hover { color: var(--blue-light); }
+.market-saved-date { font-size: .72rem; color: var(--text-light); }
+
+/* ─── ALERTS ────────────────────────────────────────────────────────────────── */
+.alerts-list { display: flex; flex-direction: column; gap: 12px; }
+.alert-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: flex; align-items: center; gap: 16px;
+  transition: border-color var(--transition);
+}
+.alert-item:hover { border-color: var(--border-2); }
+.alert-icon {
+  width: 36px; height: 36px; border-radius: 9px; background: var(--amber-pale, rgba(245,158,11,.12));
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-size: .875rem; font-weight: 600; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alert-meta { font-size: .75rem; color: var(--text-light); display: flex; gap: 12px; flex-wrap: wrap; }
+.alert-chip {
+  padding: 2px 9px; border-radius: 100px; font-size: .68rem; font-weight: 700;
+  letter-spacing: .04em;
+}
+.chip-above { background: var(--green-pale); color: var(--green); }
+.chip-below { background: var(--red-pale); color: var(--red); }
+.btn-delete {
+  background: none; border: 1.5px solid var(--border); padding: 7px 8px;
+  border-radius: var(--radius-sm); color: var(--text-light); transition: all var(--transition);
+  flex-shrink: 0; display: flex; align-items: center;
+}
+.btn-delete:hover { border-color: var(--red); color: var(--red); background: var(--red-pale); }
+
+/* ─── SETTINGS ──────────────────────────────────────────────────────────────── */
+.settings-section { margin-bottom: 28px; }
+.settings-section-title {
+  font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-light); margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.settings-hint { font-size: .75rem; color: var(--text-light); margin-top: 5px; }
+.btn-save {
+  padding: 11px 28px; background: var(--blue); color: var(--white); font-weight: 700;
+  font-size: .875rem; border-radius: var(--radius-sm); transition: all var(--transition);
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 8px;
+}
+.btn-save:hover:not(:disabled) { background: #3a8af8; box-shadow: 0 4px 16px var(--blue-glow); }
+.btn-save:disabled { opacity: .55; cursor: not-allowed; }
+.account-info-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.account-info-row:last-child { border-bottom: none; }
+.account-info-label { font-size: .83rem; color: var(--text-mid); }
+.account-info-value { font-size: .83rem; color: var(--text); font-weight: 500; }
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+  border-radius: 100px; font-size: .72rem; font-weight: 700;
+}
+.badge-active { background: var(--green-pale); color: var(--green); }
+.badge-inactive { background: var(--red-pale); color: var(--red); }
+
+/* ─── EMPTY STATE ───────────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 60px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.empty-icon {
+  width: 56px; height: 56px; background: var(--surface-2); border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+}
+.empty-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--text-mid); }
+.empty-sub { font-size: .83rem; color: var(--text-light); max-width: 260px; line-height: 1.55; }
+
+/* ─── DIVIDER ───────────────────────────────────────────────────────────────── */
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+/* ─── QUICK ACTIONS ─────────────────────────────────────────────────────────── */
+.quick-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+.btn-outline-small {
+  padding: 9px 18px; border: 1.5px solid var(--border-2); border-radius: var(--radius-sm);
+  background: none; color: var(--text-mid); font-size: .82rem; font-weight: 600;
+  transition: all var(--transition); display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-outline-small:hover { border-color: var(--blue); color: var(--blue-light); background: var(--blue-pale); }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .mobile-header { display: flex; }
+  .mobile-nav { display: block; }
+  .main-content { margin-left: 0; padding: 90px 18px 90px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .markets-grid { grid-template-columns: 1fr; }
+  .settings-row { grid-template-columns: 1fr; }
+  .auth-card { padding: 32px 24px; }
+  .view-title { font-size: 1.3rem; }
+  .quick-actions { flex-direction: column; }
+}
+@media (max-width: 420px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="app-auth">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-mark"><span class="i">i</span><span class="predicta">Predicta</span></div>
+      <div class="auth-logo-sub">Members Area</div>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <h2 class="auth-heading">Welcome back</h2>
+      <p class="auth-sub">Sign in to your iPredicta account</p>
+      <div id="login-error" class="auth-error"></div>
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login">Sign In</button>
+      <div class="auth-toggle">Don't have an account? <button id="go-signup">Create one</button></div>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" class="hidden">
+      <h2 class="auth-heading">Create account</h2>
+      <p class="auth-sub">Join iPredicta and start tracking markets</p>
+      <div id="signup-error" class="auth-error"></div>
+      <div class="form-group">
+        <label class="form-label" for="signup-email">Email</label>
+        <input class="form-input" type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signup-password">Password</label>
+        <input class="form-input" type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password">
+      </div>
+      <button class="btn-primary" id="btn-signup">Create Account</button>
+      <div class="auth-toggle">Already have an account? <button id="go-login">Sign in</button></div>
+    </div>
+
+    <!-- Confirm email message -->
+    <div id="form-confirm" class="hidden auth-success">
+      <div class="auth-success-icon">✉️</div>
+      <h3>Check your email</h3>
+      <p>We've sent a confirmation link to your email address. Click it to activate your account, then come back and sign in.</p>
+      <button class="back-link" id="back-to-login">← Back to sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="app-shell" class="hidden">
+
+  <!-- Mobile header -->
+  <header class="mobile-header">
+    <div class="mobile-logo"><span class="i">i</span><span>Predicta</span></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+    </button>
+  </header>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark"><span class="i">i</span><span class="predicta">Predicta</span></div>
+      <div class="logo-badge">Members</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Menu</div>
+      <button class="nav-item active" data-view="dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-view="markets">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Saved Markets
+        <span class="nav-badge" id="sidebar-markets-count">0</span>
+      </button>
+      <button class="nav-item" data-view="alerts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alerts
+        <span class="nav-badge" id="sidebar-alerts-count">0</span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-email" id="user-email-display">—</div>
+      </div>
+      <button class="btn-logout" id="btn-logout">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="view-dashboard" class="view active">
+      <div class="view-header">
+        <h1 class="view-title" id="dash-welcome">Welcome back</h1>
+        <p class="view-sub" id="dash-date"></p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2979e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="stat-val" id="dash-markets-count">—</div>
+          <div class="stat-label">Saved Markets</div>
+          <div class="stat-sub"><span class="dot"></span> Tracking live</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="stat-val" id="dash-alerts-count">—</div>
+          <div class="stat-label">Active Alerts</div>
+          <div class="stat-sub" id="dash-alerts-sub"><span class="dot amber"></span> Monitoring</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="stat-val" id="dash-bot-val">—</div>
+          <div class="stat-label">Telegram Bot</div>
+          <div class="stat-sub" id="dash-bot-sub"><span class="dot" id="dash-bot-dot"></span> <span id="dash-bot-status">Checking…</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="stat-val">Free</div>
+          <div class="stat-label">Account Plan</div>
+          <div class="stat-sub"><span class="dot"></span> Active</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <h3 style="font-size:.95rem;font-weight:700;color:var(--text-mid);margin-bottom:14px">Quick Actions</h3>
+      <div class="quick-actions">
+        <button class="btn-outline-small" onclick="showView('markets')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          View saved markets
+        </button>
+        <button class="btn-outline-small" onclick="showView('alerts')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Manage alerts
+        </button>
+        <button class="btn-outline-small" onclick="showView('settings')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Connect platforms
+        </button>
+        <a class="btn-outline-small" href="https://ipredicta.co" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Browse markets
+        </a>
+      </div>
+    </div>
+
+    <!-- ── SAVED MARKETS ── -->
+    <div id="view-markets" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Saved Markets</h1>
+        <p class="view-sub">Markets you've bookmarked for tracking</p>
+      </div>
+      <div id="markets-content">
+        <div class="loading-center"><div class="spinner"></div> Loading markets…</div>
+      </div>
+    </div>
+
+    <!-- ── ALERTS ── -->
+    <div id="view-alerts" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Market Alerts</h1>
+        <p class="view-sub">Get notified when markets hit your targets</p>
+      </div>
+      <div id="alerts-content">
+        <div class="loading-center"><div class="spinner"></div> Loading alerts…</div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div id="view-settings" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Settings</h1>
+        <p class="view-sub">Connect your trading accounts and manage preferences</p>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="settings-section-title">Platform Connections</div>
+        <div class="settings-row">
+          <div class="form-group">
+            <label class="form-label" for="kalshi-key">Kalshi API Key</label>
+            <input class="form-input" type="password" id="kalshi-key" placeholder="Paste your Kalshi API key">
+            <p class="settings-hint">Found in Kalshi → Settings → API Keys</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="poly-wallet">Polymarket Wallet Address</label>
+            <input class="form-input" type="text" id="poly-wallet" placeholder="0x…">
+            <p class="settings-hint">Your Polygon wallet address used on Polymarket</p>
+          </div>
+        </div>
+        <button class="btn-save" id="btn-save-platforms">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Connections
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="settings-section-title">Account</div>
+        <div class="account-info-row">
+          <span class="account-info-label">Email address</span>
+          <span class="account-info-value" id="settings-email">—</span>
+        </div>
+        <div class="account-info-row">
+          <span class="account-info-label">Account status</span>
+          <span class="status-badge badge-active">Active</span>
+        </div>
+        <div class="account-info-row">
+          <span class="account-info-label">Telegram bot</span>
+          <span class="account-info-value" id="settings-bot-status">—</span>
+        </div>
+        <div class="account-info-row">
+          <span class="account-info-label">Kalshi connection</span>
+          <span class="account-info-value" id="settings-kalshi-status">Not connected</span>
+        </div>
+        <div class="account-info-row">
+          <span class="account-info-label">Polymarket connection</span>
+          <span class="account-info-value" id="settings-poly-status">Not connected</span>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /main-content -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <button class="mobile-nav-item active" data-view="dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Home
+      </button>
+      <button class="mobile-nav-item" data-view="markets">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Markets
+      </button>
+      <button class="mobile-nav-item" data-view="alerts">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alerts
+      </button>
+      <button class="mobile-nav-item" data-view="settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+  </nav>
+
+</div><!-- /app-shell -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─── SUPABASE INIT ────────────────────────────────────────────────────────────
+const { createClient } = window.supabase;
+const sb = createClient(
+  'https://xcjoclataeywhneruqrg.supabase.co',
+  'sb_publishable_IPf1ZfCF3hUYEOpaV3AyxA_QQh6bgfF'
+);
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let marketsCount = 0;
+let alertsCount  = 0;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function probColor(p) {
+  return p > 65 ? '#00b87a' : p < 35 ? '#e8364a' : '#2979e8';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3800);
+}
+
+// ─── TOAST CONTAINER ─────────────────────────────────────────────────────────
+// (already in HTML)
+
+// ─── NAV / VIEW ROUTING ──────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`.nav-item[data-view="${name}"]`).forEach(b => b.classList.add('active'));
+
+  document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`.mobile-nav-item[data-view="${name}"]`).forEach(b => b.classList.add('active'));
+
+  closeSidebar();
+
+  // Lazy load data per view
+  if (name === 'markets') loadMarkets();
+  if (name === 'alerts')  loadAlerts();
+  if (name === 'settings') loadSettings();
+}
+
+// Wire nav buttons
+document.querySelectorAll('[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.view));
+});
+
+// ─── SIDEBAR MOBILE ───────────────────────────────────────────────────────────
+const sidebar  = document.getElementById('sidebar');
+const overlay  = document.getElementById('sidebar-overlay');
+const hamburger = document.getElementById('hamburger');
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+}
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+}
+
+hamburger?.addEventListener('click', openSidebar);
+overlay?.addEventListener('click', closeSidebar);
+
+// ─── AUTH STATE ───────────────────────────────────────────────────────────────
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    enterApp(currentUser);
+  } else {
+    currentUser = null;
+    enterAuth();
+  }
+});
+
+function enterAuth() {
+  document.getElementById('app-auth').classList.remove('hidden');
+  document.getElementById('app-shell').classList.add('hidden');
+  showAuthForm('login');
+}
+
+function enterApp(user) {
+  document.getElementById('app-auth').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+  populateUserUI(user);
+  loadDashboard();
+}
+
+function showAuthForm(which) {
+  ['login','signup','confirm'].forEach(f => {
+    document.getElementById('form-' + f).classList.toggle('hidden', f !== which);
+  });
+}
+
+function populateUserUI(user) {
+  const email = user.email || '';
+  const initials = email ? email[0].toUpperCase() : '?';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-email-display').textContent = email;
+  document.getElementById('settings-email').textContent = email;
+
+  const name = user.user_metadata?.full_name || email.split('@')[0];
+  document.getElementById('dash-welcome').textContent = `Welcome back, ${name}`;
+
+  const now = new Date();
+  document.getElementById('dash-date').textContent = now.toLocaleDateString('en-GB', {
+    weekday:'long', day:'numeric', month:'long', year:'numeric'
+  });
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('btn-login');
+
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Signing in…';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+
+  btn.disabled = false;
+  btn.innerHTML = 'Sign In';
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// ─── SIGNUP ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-signup').addEventListener('click', async () => {
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const errEl    = document.getElementById('signup-error');
+  const btn      = document.getElementById('btn-signup');
+
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Creating account…';
+
+  const { error } = await sb.auth.signUp({ email, password });
+
+  btn.disabled = false;
+  btn.innerHTML = 'Create Account';
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+  } else {
+    showAuthForm('confirm');
+  }
+});
+
+document.getElementById('signup-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-signup').click();
+});
+
+// ─── AUTH TOGGLES ─────────────────────────────────────────────────────────────
+document.getElementById('go-signup').addEventListener('click', () => showAuthForm('signup'));
+document.getElementById('go-login').addEventListener('click',  () => showAuthForm('login'));
+document.getElementById('back-to-login').addEventListener('click', () => showAuthForm('login'));
+
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  toast('Signed out successfully.', 'info');
+});
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  if (!currentUser) return;
+  const uid = currentUser.id;
+
+  // Markets count
+  const { count: mc } = await sb
+    .from('saved_markets')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', uid);
+
+  marketsCount = mc || 0;
+  document.getElementById('dash-markets-count').textContent = marketsCount;
+  document.getElementById('sidebar-markets-count').textContent = marketsCount;
+
+  // Alerts count
+  const { count: ac } = await sb
+    .from('market_alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', uid);
+
+  alertsCount = ac || 0;
+  document.getElementById('dash-alerts-count').textContent = alertsCount;
+  document.getElementById('sidebar-alerts-count').textContent = alertsCount;
+
+  // Bot status via user_preferences
+  const { data: prefs } = await sb
+    .from('user_preferences')
+    .select('telegram_chat_id, kalshi_api_key, polymarket_wallet')
+    .eq('user_id', uid)
+    .maybeSingle();
+
+  const botConnected = !!(prefs?.telegram_chat_id);
+  document.getElementById('dash-bot-val').textContent = botConnected ? 'Active' : 'Off';
+  document.getElementById('dash-bot-status').textContent = botConnected ? 'Connected' : 'Not connected';
+  const dot = document.getElementById('dash-bot-dot');
+  if (dot) { dot.className = 'dot' + (botConnected ? '' : ' red'); }
+}
+
+// ─── SAVED MARKETS ────────────────────────────────────────────────────────────
+async function loadMarkets() {
+  if (!currentUser) return;
+  const container = document.getElementById('markets-content');
+  container.innerHTML = '<div class="loading-center"><div class="spinner"></div> Loading…</div>';
+
+  const { data, error } = await sb
+    .from('saved_markets')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<div class="loading-center" style="color:var(--red)">Failed to load markets: ${error.message}</div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="empty-title">No saved markets yet</div>
+        <div class="empty-sub">Browse iPredicta and save markets you want to track here.</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="markets-grid">${data.map(renderMarketCard).join('')}</div>`;
+}
+
+function renderMarketCard(m) {
+  const prob  = m.prob ?? m.probability ?? null;
+  const color = prob !== null ? probColor(prob) : 'var(--text-mid)';
+  const src   = (m.source || '').toLowerCase();
+  const srcClass = src.includes('poly') ? 'source-poly' : src.includes('kalshi') ? 'source-kalshi' : 'source-poly';
+
+  return `
+    <div class="market-card">
+      <div class="market-card-top">
+        ${m.source ? `<span class="market-source ${srcClass}">${m.source}</span>` : ''}
+        ${prob !== null ? `<span class="market-prob" style="color:${color}">${prob}%</span>` : ''}
+      </div>
+      <div class="market-title">${m.market_title || m.title || 'Untitled market'}</div>
+      ${prob !== null ? `
+        <div class="prob-bar-bg">
+          <div class="prob-bar" style="width:${prob}%;background:${color}"></div>
+        </div>` : ''}
+      <div class="market-footer">
+        <span class="market-saved-date">Saved ${formatDate(m.created_at)}</span>
+        ${m.market_url || m.url ? `<a class="market-link" href="${m.market_url || m.url}" target="_blank" rel="noopener">Trade →</a>` : ''}
+      </div>
+    </div>`;
+}
+
+// ─── MARKET ALERTS ────────────────────────────────────────────────────────────
+async function loadAlerts() {
+  if (!currentUser) return;
+  const container = document.getElementById('alerts-content');
+  container.innerHTML = '<div class="loading-center"><div class="spinner"></div> Loading…</div>';
+
+  const { data, error } = await sb
+    .from('market_alerts')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<div class="loading-center" style="color:var(--red)">Failed to load alerts: ${error.message}</div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="empty-title">No alerts set up</div>
+        <div class="empty-sub">Alerts can be created via the iPredicta Telegram bot.</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="alerts-list">${data.map(renderAlertItem).join('')}</div>`;
+}
+
+function renderAlertItem(a) {
+  const dir = (a.direction || a.alert_type || '').toLowerCase();
+  const chipClass = dir === 'above' ? 'chip-above' : dir === 'below' ? 'chip-below' : '';
+  const chipLabel = dir === 'above' ? 'Above' : dir === 'below' ? 'Below' : dir || 'Alert';
+  const threshold = a.threshold !== undefined ? `${a.threshold}%` : '';
+
+  return `
+    <div class="alert-item" id="alert-${a.id}">
+      <div class="alert-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="alert-body">
+        <div class="alert-title">${a.market_title || a.title || 'Alert'}</div>
+        <div class="alert-meta">
+          ${chipClass ? `<span class="alert-chip ${chipClass}">${chipLabel}</span>` : ''}
+          ${threshold ? `<span>${threshold}</span>` : ''}
+          <span>Set ${formatDate(a.created_at)}</span>
+        </div>
+      </div>
+      <button class="btn-delete" onclick="deleteAlert('${a.id}')" title="Delete alert">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>`;
+}
+
+async function deleteAlert(id) {
+  const el = document.getElementById('alert-' + id);
+  if (el) { el.style.opacity = '.4'; el.style.pointerEvents = 'none'; }
+
+  const { error } = await sb
+    .from('market_alerts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    toast('Failed to delete alert: ' + error.message, 'error');
+    if (el) { el.style.opacity = '1'; el.style.pointerEvents = ''; }
+    return;
+  }
+
+  el?.remove();
+  alertsCount = Math.max(0, alertsCount - 1);
+  document.getElementById('sidebar-alerts-count').textContent = alertsCount;
+  document.getElementById('dash-alerts-count').textContent = alertsCount;
+  toast('Alert deleted.', 'success');
+
+  // Show empty state if no alerts left
+  const list = document.querySelector('.alerts-list');
+  if (list && list.children.length === 0) loadAlerts();
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  if (!currentUser) return;
+
+  const { data: prefs } = await sb
+    .from('user_preferences')
+    .select('kalshi_api_key, polymarket_wallet, telegram_chat_id')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (prefs) {
+    if (prefs.kalshi_api_key) {
+      document.getElementById('kalshi-key').value = prefs.kalshi_api_key;
+      document.getElementById('settings-kalshi-status').textContent = 'Connected';
+      document.getElementById('settings-kalshi-status').style.color = 'var(--green)';
+    }
+    if (prefs.polymarket_wallet) {
+      document.getElementById('poly-wallet').value = prefs.polymarket_wallet;
+      document.getElementById('settings-poly-status').textContent = 'Connected';
+      document.getElementById('settings-poly-status').style.color = 'var(--green)';
+    }
+    const botStatus = prefs.telegram_chat_id ? 'Connected' : 'Not connected';
+    const botColor  = prefs.telegram_chat_id ? 'var(--green)' : 'var(--text-mid)';
+    document.getElementById('settings-bot-status').textContent = botStatus;
+    document.getElementById('settings-bot-status').style.color = botColor;
+  }
+}
+
+document.getElementById('btn-save-platforms').addEventListener('click', async () => {
+  if (!currentUser) return;
+  const btn = document.getElementById('btn-save-platforms');
+  const kalshiKey   = document.getElementById('kalshi-key').value.trim();
+  const polyWallet  = document.getElementById('poly-wallet').value.trim();
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Saving…';
+
+  const payload = {
+    user_id: currentUser.id,
+    updated_at: new Date().toISOString(),
+  };
+  if (kalshiKey)  payload.kalshi_api_key      = kalshiKey;
+  if (polyWallet) payload.polymarket_wallet    = polyWallet;
+
+  const { error } = await sb
+    .from('user_preferences')
+    .upsert(payload, { onConflict: 'user_id' });
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Connections`;
+
+  if (error) {
+    toast('Save failed: ' + error.message, 'error');
+  } else {
+    toast('Connections saved.', 'success');
+    // Update status labels
+    if (kalshiKey) {
+      document.getElementById('settings-kalshi-status').textContent = 'Connected';
+      document.getElementById('settings-kalshi-status').style.color = 'var(--green)';
+    }
+    if (polyWallet) {
+      document.getElementById('settings-poly-status').textContent = 'Connected';
+      document.getElementById('settings-poly-status').style.color = 'var(--green)';
+    }
+  }
+});
+</script>
+</body>
+</html>
