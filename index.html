@@ -787,27 +787,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
     <div id="view-settings" class="view">
       <div class="view-header">
         <h1 class="view-title">Settings</h1>
-        <p class="view-sub">Connect your trading accounts and manage preferences</p>
-      </div>
-
-      <div class="card" style="margin-bottom:20px">
-        <div class="settings-section-title">Platform Connections</div>
-        <div class="settings-row">
-          <div class="form-group">
-            <label class="form-label" for="kalshi-key">Kalshi API Key</label>
-            <input class="form-input" type="password" id="kalshi-key" placeholder="Paste your Kalshi API key">
-            <p class="settings-hint">Found in Kalshi → Settings → API Keys</p>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="poly-wallet">Polymarket Wallet Address</label>
-            <input class="form-input" type="text" id="poly-wallet" placeholder="0x…">
-            <p class="settings-hint">Your Polygon wallet address used on Polymarket</p>
-          </div>
-        </div>
-        <button class="btn-save" id="btn-save-platforms">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save Connections
-        </button>
+        <p class="view-sub">Manage your account preferences</p>
       </div>
 
       <div class="card">
@@ -823,14 +803,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
         <div class="account-info-row">
           <span class="account-info-label">Telegram bot</span>
           <span class="account-info-value" id="settings-bot-status">—</span>
-        </div>
-        <div class="account-info-row">
-          <span class="account-info-label">Kalshi connection</span>
-          <span class="account-info-value" id="settings-kalshi-status">Not connected</span>
-        </div>
-        <div class="account-info-row">
-          <span class="account-info-label">Polymarket connection</span>
-          <span class="account-info-value" id="settings-poly-status">Not connected</span>
         </div>
       </div>
     </div>
@@ -1283,26 +1255,14 @@ async function loadSettings() {
 
   const { data: prefs } = await sb
     .from('user_preferences')
-    .select('kalshi_api_key, polymarket_wallet, telegram_chat_id')
+    .select('telegram_chat_id')
     .eq('user_id', currentUser.id)
     .maybeSingle();
 
-  if (prefs) {
-    if (prefs.kalshi_api_key) {
-      document.getElementById('kalshi-key').value = prefs.kalshi_api_key;
-      document.getElementById('settings-kalshi-status').textContent = 'Connected';
-      document.getElementById('settings-kalshi-status').style.color = 'var(--green)';
-    }
-    if (prefs.polymarket_wallet) {
-      document.getElementById('poly-wallet').value = prefs.polymarket_wallet;
-      document.getElementById('settings-poly-status').textContent = 'Connected';
-      document.getElementById('settings-poly-status').style.color = 'var(--green)';
-    }
-    const botStatus = prefs.telegram_chat_id ? 'Connected' : 'Not connected';
-    const botColor  = prefs.telegram_chat_id ? 'var(--green)' : 'var(--text-mid)';
-    document.getElementById('settings-bot-status').textContent = botStatus;
-    document.getElementById('settings-bot-status').style.color = botColor;
-  }
+  const botStatus = prefs?.telegram_chat_id ? 'Connected' : 'Not connected';
+  const botColor  = prefs?.telegram_chat_id ? 'var(--green)' : 'var(--text-mid)';
+  document.getElementById('settings-bot-status').textContent = botStatus;
+  document.getElementById('settings-bot-status').style.color = botColor;
 }
 
 // ─── CONNECT PLATFORMS / ACCOUNTS ─────────────────────────────────────────────
@@ -1586,45 +1546,6 @@ async function executeDisconnect(platform, name) {
   updateSidebarAccountsLabel();
 }
 
-// ─── SETTINGS ─────────────────────────────────────────────────────────────────
-document.getElementById('btn-save-platforms').addEventListener('click', async () => {
-  if (!currentUser) return;
-  const btn = document.getElementById('btn-save-platforms');
-  const kalshiKey   = document.getElementById('kalshi-key').value.trim();
-  const polyWallet  = document.getElementById('poly-wallet').value.trim();
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Saving…';
-
-  const payload = {
-    user_id: currentUser.id,
-    updated_at: new Date().toISOString(),
-  };
-  if (kalshiKey)  payload.kalshi_api_key      = kalshiKey;
-  if (polyWallet) payload.polymarket_wallet    = polyWallet;
-
-  const { error } = await sb
-    .from('user_preferences')
-    .upsert(payload, { onConflict: 'user_id' });
-
-  btn.disabled = false;
-  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Connections`;
-
-  if (error) {
-    toast('Save failed: ' + error.message, 'error');
-  } else {
-    toast('Connections saved.', 'success');
-    // Update status labels
-    if (kalshiKey) {
-      document.getElementById('settings-kalshi-status').textContent = 'Connected';
-      document.getElementById('settings-kalshi-status').style.color = 'var(--green)';
-    }
-    if (polyWallet) {
-      document.getElementById('settings-poly-status').textContent = 'Connected';
-      document.getElementById('settings-poly-status').style.color = 'var(--green)';
-    }
-  }
-});
 </script>
 </body>
 </html>
