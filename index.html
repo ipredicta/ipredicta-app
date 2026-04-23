@@ -442,6 +442,14 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .pill-connected     { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .pill-coming-soon   { background: var(--surface-2); color: var(--text-light); border: 1px solid var(--border); }
 .pill-restricted    { background: var(--surface-2); color: var(--text-light); border: 1px solid var(--border); }
+.platform-logo.tg   { background: rgba(0,136,204,.12); color: #0088cc; border: 1px solid rgba(0,136,204,.2); }
+.pill-waiting        { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.tg-code-display     { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px; font-size: .875rem; color: var(--text-mid); }
+.tg-code-val         { font-family: monospace; font-size: 1.1rem; font-weight: 700; color: var(--navy); letter-spacing: .08em; }
+.tg-waiting-hint     { font-size: .8rem; color: var(--text-light); margin: 10px 0 14px; display: flex; align-items: center; gap: 8px; }
+.tg-expired-msg      { font-size: .8rem; color: var(--red); margin-bottom: 12px; }
+.btn-tg-open         { display: block; text-align: center; background: #0088cc; color: #fff; border: none; border-radius: var(--radius-sm); padding: 10px 20px; font-size: .875rem; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; text-decoration: none; transition: background .2s; margin-bottom: 10px; }
+.btn-tg-open:hover   { background: #0077b3; }
 .platform-body { font-size: .85rem; color: var(--text-mid); line-height: 1.6; margin-bottom: 16px; }
 .platform-credential {
   display: flex; align-items: center; gap: 12px;
@@ -1070,8 +1078,9 @@ async function loadDashboard() {
   const dot = document.getElementById('dash-bot-dot');
   if (dot) { dot.className = 'dot' + (botConnected ? '' : ' red'); }
 
-  // Seed accounts prefs so sidebar label is correct on first load
+  // Seed accounts prefs and tg state so sidebar label is correct on first load
   _accountPrefs = prefs || {};
+  if (botConnected && _tgState === 'not-connected') _tgState = 'connected';
   updateSidebarAccountsLabel();
 }
 
@@ -1242,9 +1251,15 @@ const APP_REGION = (() => {
 })();
 
 let _accountPrefs = null;
+let _tgState    = 'not-connected'; // 'not-connected' | 'waiting' | 'connected'
+let _tgCode     = null;
+let _tgUsername = null;
+let _tgPollInt  = null;
+let _tgPollN    = 0;
+let _tgExpired  = false;
 
 function updateSidebarAccountsLabel() {
-  const connected = !!(_accountPrefs?.polymarket_wallet || _accountPrefs?.kalshi_api_key);
+  const connected = !!(_accountPrefs?.polymarket_wallet || _accountPrefs?.kalshi_api_key || _accountPrefs?.telegram_chat_id);
   const sideLabel = connected ? 'My Accounts' : 'Connect Platforms';
   const mobLabel  = connected ? 'Accounts'    : 'Connect';
   const viewTitle = connected ? 'My Accounts' : 'Connect your accounts';
@@ -1273,6 +1288,29 @@ async function loadAccounts() {
   }
 
   _accountPrefs = prefs || {};
+
+  // Seed Telegram state (skip if already polling)
+  if (_tgState !== 'waiting') {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        const tgRes = await fetch('/.netlify/functions/telegram-link-status', {
+          headers: { 'Authorization': 'Bearer ' + session.access_token }
+        });
+        if (tgRes.ok) {
+          const tgData = await tgRes.json();
+          if (tgData.linked) {
+            _tgState    = 'connected';
+            _tgUsername = tgData.username || null;
+            _accountPrefs.telegram_chat_id = tgData.telegram_id;
+          } else {
+            _tgState = 'not-connected';
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
   renderAccountCards();
   updateSidebarAccountsLabel();
 }
@@ -1294,6 +1332,7 @@ function renderAccountCards() {
     <div class="platform-cards">
       ${renderPolyCard(!!prefs.polymarket_wallet, prefs.polymarket_wallet)}
       ${renderKalshiCard(!!prefs.kalshi_api_key, prefs.kalshi_api_key, isUS)}
+      ${renderTelegramCard(_tgState, _tgCode, _tgUsername, _tgExpired)}
       ${renderComingSoonCard('predictit', 'PI', 'PredictIt',  'US political prediction market with small trade limits.')}
       ${renderComingSoonCard('robinhood', 'RH', 'Robinhood',  'Commission-free prediction markets alongside stocks.')}
       ${renderComingSoonCard('cryptocom', 'C',  'Crypto.com', 'Prediction markets integrated with a major crypto exchange.')}
@@ -1431,6 +1470,131 @@ function renderComingSoonCard(logoClass, logoText, name, desc) {
   </div>`;
 }
 
+function renderTelegramCard(state, code, username, expired) {
+  const pill = state === 'connected' ? '<span class="platform-pill pill-connected">&#10003; Connected</span>'
+             : state === 'waiting'   ? '<span class="platform-pill pill-waiting">Pending…</span>'
+             :                        '<span class="platform-pill pill-not-connected">Not connected</span>';
+  const cardClass = state === 'connected' ? 'platform-card connected' : 'platform-card';
+  const topRow = `
+    <div class="platform-card-top">
+      <div class="platform-logo tg">TG</div>
+      <div class="platform-info">
+        <div class="platform-name">Telegram</div>
+        <div class="platform-desc">Get personalised alerts and chat with our bot.</div>
+      </div>
+      ${pill}
+    </div>`;
+
+  if (state === 'connected') {
+    return `<div class="${cardClass}" id="card-telegram">${topRow}
+      <div class="platform-credential">
+        <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        ${username ? '@' + username + ' linked' : 'Telegram linked'}
+      </div>
+      <button class="btn-disconnect" onclick="confirmDisconnect('telegram','Telegram')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Disconnect
+      </button>
+    </div>`;
+  }
+
+  if (state === 'waiting') {
+    return `<div class="${cardClass}" id="card-telegram">${topRow}
+      <div class="tg-code-display">Your link code: <span class="tg-code-val">${code}</span></div>
+      <a class="btn-tg-open" href="https://t.me/ipredicta_markets_bot?start=${code}" target="_blank" rel="noopener">Open Telegram →</a>
+      <div class="tg-waiting-hint"><div style="width:6px;height:6px;border-radius:50%;background:#00b87a;flex-shrink:0;animation:pulse 1.5s infinite"></div> Waiting for you to hit Start…</div>
+      <button class="btn-disconnect" onclick="cancelTelegramLink()">Cancel</button>
+    </div>`;
+  }
+
+  return `<div class="${cardClass}" id="card-telegram">${topRow}
+    ${expired ? '<div class="tg-expired-msg">Link expired — generate a new one below.</div>' : ''}
+    <p class="platform-body">Receive personalised alerts, arbitrage notifications, and market updates directly in Telegram.</p>
+    <button class="btn-connect" onclick="connectTelegram()">Connect Telegram</button>
+  </div>`;
+}
+
+function refreshTelegramCard() {
+  const old = document.getElementById('card-telegram');
+  if (!old) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderTelegramCard(_tgState, _tgCode, _tgUsername, _tgExpired);
+  old.replaceWith(tmp.firstElementChild);
+}
+
+async function connectTelegram() {
+  if (!currentUser) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { toast('Please sign in again', 'error'); return; }
+
+  const btn = document.querySelector('#card-telegram .btn-connect');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating code…'; }
+
+  try {
+    const res = await fetch('/.netlify/functions/telegram-link-code', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token }
+    });
+    const data = await res.json();
+    if (!res.ok || !data.code) throw new Error(data.error || 'Unknown error');
+    _tgCode    = data.code;
+    _tgState   = 'waiting';
+    _tgPollN   = 0;
+    _tgExpired = false;
+    refreshTelegramCard();
+    startTgPolling(session.access_token);
+  } catch(e) {
+    toast('Could not generate link code. Try again.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Connect Telegram'; }
+  }
+}
+
+function stopTgPolling() {
+  if (_tgPollInt) { clearInterval(_tgPollInt); _tgPollInt = null; }
+}
+
+function startTgPolling(token) {
+  stopTgPolling();
+  _tgPollInt = setInterval(async () => {
+    _tgPollN++;
+    if (_tgPollN > 40) {
+      stopTgPolling();
+      _tgState = 'not-connected'; _tgCode = null; _tgExpired = true;
+      refreshTelegramCard();
+      return;
+    }
+    try {
+      const r = await fetch('/.netlify/functions/telegram-link-status', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.linked) {
+        stopTgPolling();
+        _tgState    = 'connected';
+        _tgUsername = d.username || null;
+        _tgCode     = null;
+        _accountPrefs = _accountPrefs || {};
+        _accountPrefs.telegram_chat_id = d.telegram_id;
+        updateSidebarAccountsLabel();
+        refreshTelegramCard();
+        const bv = document.getElementById('dash-bot-val');
+        const bs = document.getElementById('dash-bot-status');
+        const bd = document.getElementById('dash-bot-dot');
+        if (bv) bv.textContent = 'Active';
+        if (bs) bs.textContent = d.username ? '@' + d.username : 'Connected';
+        if (bd) bd.className = 'dot';
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function cancelTelegramLink() {
+  stopTgPolling();
+  _tgState = 'not-connected'; _tgCode = null; _tgExpired = false;
+  refreshTelegramCard();
+}
+
 async function connectPlatform(platform) {
   if (!currentUser) return;
   let value;
@@ -1494,6 +1658,31 @@ document.getElementById('dmodal-backdrop').addEventListener('click', function(e)
 async function executeDisconnect(platform, name) {
   if (!currentUser) return;
   closeDisconnectModal();
+
+  if (platform === 'telegram') {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch('/.netlify/functions/telegram-disconnect', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token }
+      });
+      if (!res.ok) throw new Error('Disconnect failed');
+      _tgState = 'not-connected'; _tgUsername = null; _tgExpired = false;
+      _accountPrefs = _accountPrefs || {};
+      delete _accountPrefs.telegram_chat_id;
+      updateSidebarAccountsLabel();
+      refreshTelegramCard();
+      const bv = document.getElementById('dash-bot-val');
+      const bs = document.getElementById('dash-bot-status');
+      const bd = document.getElementById('dash-bot-dot');
+      if (bv) bv.textContent = 'Off';
+      if (bs) bs.textContent = 'Not connected';
+      if (bd) bd.className = 'dot red';
+      toast('Telegram disconnected', 'info');
+    } catch(e) { toast('Failed to disconnect Telegram', 'error'); }
+    return;
+  }
 
   const payload = { user_id: currentUser.id, updated_at: new Date().toISOString() };
   if (platform === 'polymarket') payload.polymarket_wallet = null;

@@ -27,7 +27,7 @@ exports.handler = async (event) => {
   }
 
   const { data: tgRow } = await sb.from('telegram_users')
-    .select('telegram_id, linked_at')
+    .select('telegram_id, username, linked_at')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -37,6 +37,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({
       linked: !!tgRow,
       telegram_id: tgRow?.telegram_id ?? null,
+      username: tgRow?.username ?? null,
       linked_at: tgRow?.linked_at ?? null
     })
   };
