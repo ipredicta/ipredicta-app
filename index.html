@@ -446,6 +446,109 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 }
 .btn-outline-small:hover { border-color: var(--blue); color: var(--blue-light); background: var(--blue-pale); }
 
+/* ─── PLATFORM CARDS (Connect Platforms view) ───────────────────────────────── */
+.platform-cards { display: flex; flex-direction: column; gap: 16px; }
+.platform-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; transition: border-color var(--transition);
+}
+.platform-card.connected { border-color: rgba(0,184,122,.3); }
+.platform-card-top { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.platform-logo {
+  width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: .95rem; font-weight: 800;
+}
+.platform-logo.poly     { background: rgba(99,102,241,.15); color: #8b8ef7; border: 1px solid rgba(99,102,241,.25); }
+.platform-logo.kalshi   { background: var(--blue-pale); color: var(--blue-light); border: 1px solid var(--blue-glow); }
+.platform-logo.predictit{ background: rgba(0,184,122,.1); color: #00b87a; border: 1px solid rgba(0,184,122,.2); }
+.platform-logo.robinhood{ background: rgba(0,200,5,.1); color: #00c805; border: 1px solid rgba(0,200,5,.2); }
+.platform-logo.cryptocom{ background: rgba(41,121,232,.1); color: #4fb3f6; border: 1px solid rgba(41,121,232,.2); }
+.platform-info { flex: 1; min-width: 0; }
+.platform-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--white); margin-bottom: 2px; }
+.platform-desc { font-size: .8rem; color: var(--text-mid); line-height: 1.4; }
+.platform-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 11px;
+  border-radius: 100px; font-size: .68rem; font-weight: 700; letter-spacing: .04em;
+  white-space: nowrap; flex-shrink: 0;
+}
+.pill-not-connected { background: var(--surface-2); color: var(--text-mid); border: 1px solid var(--border-2); }
+.pill-connected     { background: var(--green-pale); color: var(--green); }
+.pill-coming-soon   { background: var(--surface-2); color: var(--text-light); border: 1px solid var(--border); }
+.pill-restricted    { background: var(--surface-2); color: var(--text-light); border: 1px solid var(--border); }
+.platform-body { font-size: .85rem; color: var(--text-mid); line-height: 1.6; margin-bottom: 16px; }
+.platform-credential {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-size: .85rem; color: var(--text-mid); margin-bottom: 16px; font-family: monospace;
+}
+.credential-icon {
+  width: 26px; height: 26px; border-radius: 7px; background: var(--green-pale);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.help-toggle {
+  background: none; border: none; color: var(--blue-light); font-size: .8rem; font-weight: 600;
+  cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 5px;
+  transition: color var(--transition); margin-bottom: 12px;
+}
+.help-toggle:hover { color: var(--blue); }
+.help-toggle svg { transition: transform .2s; }
+.help-toggle.open svg { transform: rotate(180deg); }
+.help-content {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px; display: none;
+}
+.help-content.open { display: block; }
+.help-steps { padding-left: 20px; margin: 0; }
+.help-steps li { font-size: .82rem; color: var(--text-mid); line-height: 1.6; margin-bottom: 3px; }
+.help-warning {
+  background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  font-size: .78rem; color: var(--amber); margin-top: 12px; line-height: 1.5;
+}
+.platform-input-group { margin-bottom: 12px; }
+.platform-input-label {
+  display: block; font-size: .72rem; font-weight: 600; color: var(--text-mid);
+  margin-bottom: 7px; letter-spacing: .04em; text-transform: uppercase;
+}
+.platform-input-error { font-size: .75rem; color: var(--red); margin-top: 5px; display: none; }
+.platform-security-note { font-size: .75rem; color: var(--text-light); line-height: 1.55; margin-top: 10px; }
+.btn-connect {
+  padding: 11px 24px; background: var(--blue); color: var(--white); font-weight: 700;
+  font-size: .875rem; border-radius: var(--radius-sm); transition: all var(--transition);
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.btn-connect:hover:not(:disabled) { background: #3a8af8; box-shadow: 0 4px 16px var(--blue-glow); }
+.btn-connect:disabled { opacity: .55; cursor: not-allowed; }
+.btn-disconnect {
+  padding: 9px 18px; background: none; border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm); color: var(--text-mid); font-size: .82rem; font-weight: 600;
+  transition: all var(--transition); cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-disconnect:hover { border-color: var(--red); color: var(--red); background: var(--red-pale); }
+
+/* ─── DISCONNECT MODAL ──────────────────────────────────────────────────────── */
+.dmodal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9000;
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+.dmodal-card {
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--radius); padding: 32px; max-width: 380px; width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.dmodal-title { font-size: 1.1rem; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+.dmodal-body  { font-size: .875rem; color: var(--text-mid); line-height: 1.6; margin-bottom: 24px; }
+.dmodal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-danger {
+  padding: 10px 22px; background: var(--red); color: var(--white); font-weight: 700;
+  font-size: .875rem; border-radius: var(--radius-sm); border: none; cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-danger:hover { background: #c8293d; }
+
 /* ─── RESPONSIVE ────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-100%); }
@@ -561,6 +664,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
         Alerts
         <span class="nav-badge" id="sidebar-alerts-count">0</span>
       </button>
+      <button class="nav-item" data-view="accounts" id="nav-accounts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span id="nav-accounts-label">Connect Platforms</span>
+      </button>
       <button class="nav-item" data-view="settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -632,8 +739,8 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           Manage alerts
         </button>
-        <button class="btn-outline-small" onclick="showView('settings')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <button class="btn-outline-small" onclick="showView('accounts')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           Connect platforms
         </button>
         <a class="btn-outline-small" href="https://ipredicta.co" target="_blank" rel="noopener">
@@ -662,6 +769,17 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       </div>
       <div id="alerts-content">
         <div class="loading-center"><div class="spinner"></div> Loading alerts…</div>
+      </div>
+    </div>
+
+    <!-- ── ACCOUNTS ── -->
+    <div id="view-accounts" class="view">
+      <div class="view-header">
+        <h1 class="view-title" id="accounts-view-title">Connect your accounts</h1>
+        <p class="view-sub">Link your prediction market accounts so we can track your balances and send you smarter alerts.</p>
+      </div>
+      <div id="accounts-content">
+        <div class="loading-center"><div class="spinner"></div> Loading…</div>
       </div>
     </div>
 
@@ -734,6 +852,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         Alerts
       </button>
+      <button class="mobile-nav-item" data-view="accounts">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span id="mob-nav-accounts-label">Connect</span>
+      </button>
       <button class="mobile-nav-item" data-view="settings">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -742,6 +864,20 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   </nav>
 
 </div><!-- /app-shell -->
+
+<!-- Disconnect confirmation modal -->
+<div id="disconnect-modal" class="hidden">
+  <div class="dmodal-backdrop" id="dmodal-backdrop">
+    <div class="dmodal-card">
+      <h3 class="dmodal-title" id="disconnect-modal-title">Disconnect platform?</h3>
+      <p class="dmodal-body" id="disconnect-modal-body"></p>
+      <div class="dmodal-actions">
+        <button class="btn-disconnect" onclick="closeDisconnectModal()">Cancel</button>
+        <button class="btn-danger" id="disconnect-confirm-btn">Disconnect</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Toast container -->
 <div id="toast-container"></div>
@@ -801,9 +937,10 @@ function showView(name) {
   closeSidebar();
 
   // Lazy load data per view
-  if (name === 'markets') loadMarkets();
-  if (name === 'alerts')  loadAlerts();
+  if (name === 'markets')  loadMarkets();
+  if (name === 'alerts')   loadAlerts();
   if (name === 'settings') loadSettings();
+  if (name === 'accounts') loadAccounts();
 }
 
 // Wire nav buttons
@@ -994,6 +1131,10 @@ async function loadDashboard() {
   document.getElementById('dash-bot-status').textContent = botConnected ? 'Connected' : 'Not connected';
   const dot = document.getElementById('dash-bot-dot');
   if (dot) { dot.className = 'dot' + (botConnected ? '' : ' red'); }
+
+  // Seed accounts prefs so sidebar label is correct on first load
+  _accountPrefs = prefs || {};
+  updateSidebarAccountsLabel();
 }
 
 // ─── SAVED MARKETS ────────────────────────────────────────────────────────────
@@ -1164,6 +1305,288 @@ async function loadSettings() {
   }
 }
 
+// ─── CONNECT PLATFORMS / ACCOUNTS ─────────────────────────────────────────────
+const APP_REGION = (() => {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const lang = (navigator.language || '').toLowerCase();
+    if (tz.startsWith('America/') || lang === 'en-us') return 'US';
+    return 'OTHER';
+  } catch(e) { return 'OTHER'; }
+})();
+
+let _accountPrefs = null;
+
+function updateSidebarAccountsLabel() {
+  const connected = !!(_accountPrefs?.polymarket_wallet || _accountPrefs?.kalshi_api_key);
+  const sideLabel = connected ? 'My Accounts' : 'Connect Platforms';
+  const mobLabel  = connected ? 'Accounts'    : 'Connect';
+  const viewTitle = connected ? 'My Accounts' : 'Connect your accounts';
+  const nl = document.getElementById('nav-accounts-label');
+  const ml = document.getElementById('mob-nav-accounts-label');
+  const vt = document.getElementById('accounts-view-title');
+  if (nl) nl.textContent = sideLabel;
+  if (ml) ml.textContent = mobLabel;
+  if (vt) vt.textContent = viewTitle;
+}
+
+async function loadAccounts() {
+  if (!currentUser) return;
+  const container = document.getElementById('accounts-content');
+  container.innerHTML = '<div class="loading-center"><div class="spinner"></div> Loading…</div>';
+
+  const { data: prefs, error } = await sb
+    .from('user_preferences')
+    .select('polymarket_wallet, kalshi_api_key')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    container.innerHTML = `<div class="loading-center" style="color:var(--red)">Failed to load: ${error.message}</div>`;
+    return;
+  }
+
+  _accountPrefs = prefs || {};
+  renderAccountCards();
+  updateSidebarAccountsLabel();
+}
+
+function maskWallet(w) {
+  if (!w || w.length <= 10) return w || '';
+  return w.slice(0, 6) + '••••••••' + w.slice(-4);
+}
+function maskKey(k) {
+  if (!k) return '';
+  return '••••••••' + k.slice(-4);
+}
+
+function renderAccountCards() {
+  const prefs = _accountPrefs || {};
+  const isUS  = APP_REGION === 'US';
+  const container = document.getElementById('accounts-content');
+  container.innerHTML = `
+    <div class="platform-cards">
+      ${renderPolyCard(!!prefs.polymarket_wallet, prefs.polymarket_wallet)}
+      ${renderKalshiCard(!!prefs.kalshi_api_key, prefs.kalshi_api_key, isUS)}
+      ${renderComingSoonCard('predictit', 'PI', 'PredictIt',  'US political prediction market with small trade limits.')}
+      ${renderComingSoonCard('robinhood', 'RH', 'Robinhood',  'Commission-free prediction markets alongside stocks.')}
+      ${renderComingSoonCard('cryptocom', 'C',  'Crypto.com', 'Prediction markets integrated with a major crypto exchange.')}
+    </div>`;
+
+  // Wire help toggles
+  container.querySelectorAll('.help-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (!target) return;
+      btn.classList.toggle('open', target.classList.toggle('open'));
+    });
+  });
+}
+
+function renderPolyCard(connected, wallet) {
+  const topRow = `
+    <div class="platform-card-top">
+      <div class="platform-logo poly">PM</div>
+      <div class="platform-info">
+        <div class="platform-name">Polymarket</div>
+        <div class="platform-desc">The world's largest prediction market, open to users worldwide.</div>
+      </div>
+      <span class="platform-pill ${connected ? 'pill-connected' : 'pill-not-connected'}">${connected ? '✓ Connected' : 'Not connected'}</span>
+    </div>`;
+
+  if (connected) {
+    return `<div class="platform-card connected" id="card-polymarket">${topRow}
+      <div class="platform-credential">
+        <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        ${maskWallet(wallet)}
+      </div>
+      <button class="btn-disconnect" onclick="confirmDisconnect('polymarket','Polymarket')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Disconnect
+      </button>
+    </div>`;
+  }
+
+  return `<div class="platform-card" id="card-polymarket">${topRow}
+    <p class="platform-body">Connecting your account lets us show your live balance, track your positions, and send real-time alerts when markets you care about start moving.</p>
+    <button class="help-toggle" data-target="poly-help">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      How do I find this?
+    </button>
+    <div id="poly-help" class="help-content">
+      <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px">How do I find my wallet address?</p>
+      <ol class="help-steps">
+        <li>Open polymarket.com and sign in.</li>
+        <li>Click your profile icon in the top-right corner.</li>
+        <li>Click "Deposit" or "Profile" — you'll see your wallet address starting with "0x".</li>
+        <li>Copy the full address (it should be 42 characters) and paste it below.</li>
+      </ol>
+    </div>
+    <div class="platform-input-group">
+      <label class="platform-input-label" for="input-poly-wallet">Your Polymarket wallet address</label>
+      <input class="form-input" type="text" id="input-poly-wallet" placeholder="0x…">
+      <div class="platform-input-error" id="error-poly-wallet">That doesn't look like a valid wallet address. It should start with 0x and be 42 characters long.</div>
+    </div>
+    <button class="btn-connect" onclick="connectPlatform('polymarket')">Connect Polymarket</button>
+    <p class="platform-security-note">This is just your public wallet address — think of it like a bank account number. It's safe to share, and we can't access your funds with it.</p>
+  </div>`;
+}
+
+function renderKalshiCard(connected, key, isUS) {
+  const topRow = `
+    <div class="platform-card-top">
+      <div class="platform-logo kalshi" ${!isUS ? 'style="opacity:.45"' : ''}>K</div>
+      <div class="platform-info">
+        <div class="platform-name" ${!isUS ? 'style="color:var(--text-mid)"' : ''}>Kalshi</div>
+        <div class="platform-desc">US-regulated prediction market operating in dollars, no crypto needed.</div>
+      </div>
+      <span class="platform-pill ${connected ? 'pill-connected' : isUS ? 'pill-not-connected' : 'pill-restricted'}">
+        ${connected ? '✓ Connected' : isUS ? 'Not connected' : 'Not available in your region'}
+      </span>
+    </div>`;
+
+  if (!isUS) {
+    return `<div class="platform-card" id="card-kalshi">${topRow}
+      <p class="platform-body">Kalshi is currently US-only. You'll be able to connect when you're in a supported region.</p>
+    </div>`;
+  }
+
+  if (connected) {
+    return `<div class="platform-card connected" id="card-kalshi">${topRow}
+      <div class="platform-credential">
+        <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        ${maskKey(key)}
+      </div>
+      <button class="btn-disconnect" onclick="confirmDisconnect('kalshi','Kalshi')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Disconnect
+      </button>
+    </div>`;
+  }
+
+  return `<div class="platform-card" id="card-kalshi">${topRow}
+    <p class="platform-body">Connecting your account lets us show your live balance, track your positions, and send real-time alerts when markets you care about start moving.</p>
+    <button class="help-toggle" data-target="kalshi-help">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      How do I find this?
+    </button>
+    <div id="kalshi-help" class="help-content">
+      <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px">How do I get a Kalshi API key?</p>
+      <ol class="help-steps">
+        <li>Log in at kalshi.com.</li>
+        <li>Click your profile icon in the top-right corner.</li>
+        <li>Go to Settings → API Keys.</li>
+        <li>Click "Create new key" and give it a name like "iPredicta".</li>
+        <li>Copy the key shown and paste it below.</li>
+      </ol>
+      <div class="help-warning">Important: Kalshi only shows your API key once. Save a copy somewhere safe in case you need it again.</div>
+    </div>
+    <div class="platform-input-group">
+      <label class="platform-input-label" for="input-kalshi-key">Your Kalshi API key</label>
+      <input class="form-input" type="password" id="input-kalshi-key" placeholder="Paste your API key here">
+      <div class="platform-input-error" id="error-kalshi-key">Please paste your Kalshi API key (at least 10 characters).</div>
+    </div>
+    <button class="btn-connect" onclick="connectPlatform('kalshi')">Connect Kalshi</button>
+    <p class="platform-security-note">We use this key to read your balance and positions only. It can't be used to trade or move your money.</p>
+  </div>`;
+}
+
+function renderComingSoonCard(logoClass, logoText, name, desc) {
+  return `
+  <div class="platform-card" style="opacity:.7">
+    <div class="platform-card-top">
+      <div class="platform-logo ${logoClass}" style="opacity:.5">${logoText}</div>
+      <div class="platform-info">
+        <div class="platform-name" style="color:var(--text-mid)">${name}</div>
+        <div class="platform-desc">${desc}</div>
+      </div>
+      <span class="platform-pill pill-coming-soon">Coming soon</span>
+    </div>
+  </div>`;
+}
+
+async function connectPlatform(platform) {
+  if (!currentUser) return;
+  let value;
+
+  if (platform === 'polymarket') {
+    const input = document.getElementById('input-poly-wallet');
+    const err   = document.getElementById('error-poly-wallet');
+    value = (input?.value || '').trim();
+    err.style.display = 'none';
+    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) { err.style.display = 'block'; return; }
+  } else {
+    const input = document.getElementById('input-kalshi-key');
+    const err   = document.getElementById('error-kalshi-key');
+    value = (input?.value || '').trim();
+    err.style.display = 'none';
+    if (!value || value.length < 10) { err.style.display = 'block'; return; }
+  }
+
+  const card = document.getElementById('card-' + platform);
+  const btn  = card?.querySelector('.btn-connect');
+  const label = platform === 'polymarket' ? 'Polymarket' : 'Kalshi';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Connecting…'; }
+
+  const payload = { user_id: currentUser.id, updated_at: new Date().toISOString() };
+  if (platform === 'polymarket') payload.polymarket_wallet = value;
+  else                           payload.kalshi_api_key    = value;
+
+  const { error } = await sb.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
+
+  if (error) {
+    toast('Connection failed: ' + error.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
+    return;
+  }
+
+  _accountPrefs = _accountPrefs || {};
+  if (platform === 'polymarket') _accountPrefs.polymarket_wallet = value;
+  else                           _accountPrefs.kalshi_api_key    = value;
+
+  toast(label + ' connected', 'success');
+  renderAccountCards();
+  updateSidebarAccountsLabel();
+}
+
+let _pendingDisconnect = null;
+function confirmDisconnect(platform, name) {
+  _pendingDisconnect = platform;
+  document.getElementById('disconnect-modal-title').textContent = `Disconnect ${name}?`;
+  document.getElementById('disconnect-modal-body').textContent  = `This will remove your ${name} connection from iPredicta. You can reconnect at any time.`;
+  document.getElementById('disconnect-confirm-btn').onclick = () => executeDisconnect(platform, name);
+  document.getElementById('disconnect-modal').classList.remove('hidden');
+}
+function closeDisconnectModal() {
+  _pendingDisconnect = null;
+  document.getElementById('disconnect-modal').classList.add('hidden');
+}
+document.getElementById('dmodal-backdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeDisconnectModal();
+});
+
+async function executeDisconnect(platform, name) {
+  if (!currentUser) return;
+  closeDisconnectModal();
+
+  const payload = { user_id: currentUser.id, updated_at: new Date().toISOString() };
+  if (platform === 'polymarket') payload.polymarket_wallet = null;
+  else                           payload.kalshi_api_key    = null;
+
+  const { error } = await sb.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
+
+  if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
+
+  _accountPrefs = _accountPrefs || {};
+  if (platform === 'polymarket') delete _accountPrefs.polymarket_wallet;
+  else                           delete _accountPrefs.kalshi_api_key;
+
+  toast(name + ' disconnected', 'info');
+  renderAccountCards();
+  updateSidebarAccountsLabel();
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
 document.getElementById('btn-save-platforms').addEventListener('click', async () => {
   if (!currentUser) return;
   const btn = document.getElementById('btn-save-platforms');
