@@ -105,12 +105,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .auth-logo {
   text-align: center; margin-bottom: 32px;
 }
-.auth-logo-mark {
-  font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800;
-  letter-spacing: -.04em; display: inline-flex; align-items: center; gap: 2px;
-}
-.auth-logo-mark .i { color: var(--blue); }
-.auth-logo-mark .predicta { color: var(--white); }
 .auth-logo-sub {
   font-size: .72rem; color: var(--text-mid); margin-top: 4px; font-weight: 500;
   letter-spacing: .08em; text-transform: uppercase;
@@ -186,12 +180,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   padding: 22px 20px 18px;
   border-bottom: 1px solid var(--border);
 }
-.logo-mark {
-  font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800;
-  letter-spacing: -.03em; display: flex; align-items: center; gap: 2px;
-}
-.logo-mark .i { color: var(--blue); }
-.logo-mark .predicta { color: var(--white); }
 .logo-badge {
   display: inline-block; margin-top: 3px; font-size: .62rem; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase; color: var(--blue);
@@ -251,8 +239,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   align-items: center; justify-content: space-between; padding: 0 18px;
   z-index: 200;
 }
-.mobile-logo { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; letter-spacing: -.03em; }
-.mobile-logo .i { color: var(--blue); }
 .hamburger {
   background: none; border: none; padding: 4px; display: flex; flex-direction: column;
   gap: 5px; cursor: pointer;
@@ -487,7 +473,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 <div id="app-auth">
   <div class="auth-card">
     <div class="auth-logo">
-      <div class="auth-logo-mark"><span class="i">i</span><span class="predicta">Predicta</span></div>
+      <img src="assets/logo-horizontal.svg" alt="iPredicta" style="max-width:200px;height:auto;display:block;margin:0 auto">
       <div class="auth-logo-sub">Members Area</div>
     </div>
 
@@ -542,7 +528,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 
   <!-- Mobile header -->
   <header class="mobile-header">
-    <div class="mobile-logo"><span class="i">i</span><span>Predicta</span></div>
+    <img src="assets/logo-white.png" alt="iPredicta" style="height:30px;width:auto">
     <button class="hamburger" id="hamburger" aria-label="Open menu">
       <span class="ham-line"></span>
       <span class="ham-line"></span>
@@ -556,7 +542,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-mark"><span class="i">i</span><span class="predicta">Predicta</span></div>
+      <img src="assets/logo-white.png" alt="iPredicta" style="height:34px;width:auto;display:block">
       <div class="logo-badge">Members</div>
     </div>
     <nav class="sidebar-nav">
