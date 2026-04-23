@@ -829,12 +829,25 @@ hamburger?.addEventListener('click', openSidebar);
 overlay?.addEventListener('click', closeSidebar);
 
 // ─── AUTH STATE ───────────────────────────────────────────────────────────────
+function _setSharedCookie(session) {
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  const flags = 'domain=.ipredicta.co; path=/; max-age=' + maxAge + '; SameSite=Lax; Secure';
+  document.cookie = 'ipredicta_at=' + encodeURIComponent(session.access_token) + '; ' + flags;
+  document.cookie = 'ipredicta_rt=' + encodeURIComponent(session.refresh_token) + '; ' + flags;
+}
+function _clearSharedCookie() {
+  const flags = 'domain=.ipredicta.co; path=/; max-age=0';
+  document.cookie = 'ipredicta_at=; ' + flags;
+  document.cookie = 'ipredicta_rt=; ' + flags;
+}
 sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
     currentUser = session.user;
+    _setSharedCookie(session);
     enterApp(currentUser);
   } else {
     currentUser = null;
+    _clearSharedCookie();
     enterAuth();
   }
 });
