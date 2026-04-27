@@ -852,9 +852,6 @@ let alertsCount  = 0;
 
 // ─── DEEP-LINK PARAMS ────────────────────────────────────────────────────────
 const _dlParams = new URLSearchParams(window.location.search);
-const _sbLsKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-console.log('[AUTH DBG] Supabase localStorage key:', _sbLsKey, '| has cached session:', !!_sbLsKey);
-console.log('[AUTH DBG] _dlParams parsed — mode:', _dlParams.get('mode'), '| action:', _dlParams.get('action'));
 if (_dlParams.get('action')) {
   localStorage.setItem('ip_pending_action', JSON.stringify({
     action:       _dlParams.get('action'),
@@ -867,10 +864,7 @@ if (_dlParams.get('action')) {
     created_at:   Date.now(),
   }));
 }
-if (_dlParams.get('mode') === 'signup') {
-  console.log('[AUTH DBG] sync mode check — calling showAuthForm(signup)');
-  showAuthForm('signup');
-}
+if (_dlParams.get('mode') === 'signup') showAuthForm('signup');
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function probColor(p) {
@@ -991,30 +985,25 @@ function _clearSharedCookie() {
   document.cookie = 'ipredicta_rt=; ' + flags;
 }
 sb.auth.onAuthStateChange((event, session) => {
-  console.log('[AUTH DBG] onAuthStateChange fired — event:', event, '| session present:', !!session?.user);
   if (session?.user) {
     currentUser = session.user;
     _setSharedCookie(session);
-    console.log('[AUTH DBG] → calling enterApp()');
     enterApp(currentUser);
     if (event === 'SIGNED_IN') _executePendingAction(session);
   } else {
     currentUser = null;
     _clearSharedCookie();
-    console.log('[AUTH DBG] → calling enterAuth()');
     enterAuth();
   }
 });
 
 function enterAuth() {
-  console.log('[AUTH DBG] enterAuth() — mode param:', _dlParams.get('mode'));
   document.getElementById('app-auth').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('hidden');
   showAuthForm(_dlParams.get('mode') === 'signup' ? 'signup' : 'login');
 }
 
 function enterApp(user) {
-  console.log('[AUTH DBG] enterApp() — user:', user?.email);
   document.getElementById('app-auth').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   populateUserUI(user);
@@ -1022,12 +1011,9 @@ function enterApp(user) {
 }
 
 function showAuthForm(which) {
-  console.log('[AUTH DBG] showAuthForm called with:', which);
   ['login','signup','confirm'].forEach(f => {
     document.getElementById('form-' + f).classList.toggle('hidden', f !== which);
   });
-  console.log('[AUTH DBG] form-login hidden?', document.getElementById('form-login').classList.contains('hidden'));
-  console.log('[AUTH DBG] form-signup hidden?', document.getElementById('form-signup').classList.contains('hidden'));
 }
 
 function populateUserUI(user) {
