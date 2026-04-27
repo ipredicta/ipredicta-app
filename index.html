@@ -577,6 +577,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       <p class="auth-sub">Join iPredicta and start tracking markets</p>
       <div id="signup-error" class="auth-error"></div>
       <div class="form-group">
+        <label class="form-label" for="signup-name">First name</label>
+        <input class="form-input" type="text" id="signup-name" placeholder="Your first name" autocomplete="given-name">
+      </div>
+      <div class="form-group">
         <label class="form-label" for="signup-email">Email</label>
         <input class="form-input" type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
       </div>
@@ -846,6 +850,28 @@ let currentUser = null;
 let marketsCount = 0;
 let alertsCount  = 0;
 
+// ─── DEEP-LINK PARAMS ────────────────────────────────────────────────────────
+const _dlParams = new URLSearchParams(window.location.search);
+const _sbLsKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+console.log('[AUTH DBG] Supabase localStorage key:', _sbLsKey, '| has cached session:', !!_sbLsKey);
+console.log('[AUTH DBG] _dlParams parsed — mode:', _dlParams.get('mode'), '| action:', _dlParams.get('action'));
+if (_dlParams.get('action')) {
+  localStorage.setItem('ip_pending_action', JSON.stringify({
+    action:       _dlParams.get('action'),
+    market_title: _dlParams.get('market_title') || '',
+    market_url:   _dlParams.get('market_url')   || '',
+    prob:         _dlParams.get('prob')          || '',
+    source:       _dlParams.get('source')        || '',
+    category:     _dlParams.get('category')      || '',
+    return_to:    _dlParams.get('return_to')     || '',
+    created_at:   Date.now(),
+  }));
+}
+if (_dlParams.get('mode') === 'signup') {
+  console.log('[AUTH DBG] sync mode check — calling showAuthForm(signup)');
+  showAuthForm('signup');
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function probColor(p) {
   return p > 65 ? '#00b87a' : p < 35 ? '#e8364a' : '#2979e8';
@@ -863,6 +889,47 @@ function toast(msg, type = 'info') {
   t.textContent = msg;
   c.appendChild(t);
   setTimeout(() => t.remove(), 3800);
+}
+
+async function _executePendingAction(session) {
+  const raw = localStorage.getItem('ip_pending_action');
+  if (!raw) return;
+  let pending;
+  try { pending = JSON.parse(raw); } catch(_) { localStorage.removeItem('ip_pending_action'); return; }
+
+  if (!pending.action || !pending.market_url) { localStorage.removeItem('ip_pending_action'); return; }
+  if (Date.now() - (pending.created_at || 0) > 24 * 60 * 60 * 1000) {
+    localStorage.removeItem('ip_pending_action');
+    return;
+  }
+
+  const table = pending.action === 'save' ? 'saved_markets' : 'market_alerts';
+  const { error } = await sb.from(table).insert({
+    user_id:      session.user.id,
+    market_title: pending.market_title,
+    prob:         pending.prob ? parseFloat(pending.prob) : null,
+    source:       pending.source,
+    market_url:   pending.market_url,
+    category:     pending.category || null,
+    created_at:   new Date().toISOString(),
+  });
+
+  if (error) {
+    toast('Could not complete your pending action. Please try again.', 'error');
+    return;
+  }
+
+  localStorage.removeItem('ip_pending_action');
+  toast(pending.action === 'save' ? 'Market saved ✓' : 'Alert set ✓', 'success');
+
+  if (pending.return_to) {
+    try {
+      const url = new URL(pending.return_to);
+      if (url.hostname === 'ipredicta.co') {
+        setTimeout(() => { window.location.href = pending.return_to; }, 1500);
+      }
+    } catch(_) {}
+  }
 }
 
 // ─── TOAST CONTAINER ─────────────────────────────────────────────────────────
@@ -924,24 +991,30 @@ function _clearSharedCookie() {
   document.cookie = 'ipredicta_rt=; ' + flags;
 }
 sb.auth.onAuthStateChange((event, session) => {
+  console.log('[AUTH DBG] onAuthStateChange fired — event:', event, '| session present:', !!session?.user);
   if (session?.user) {
     currentUser = session.user;
     _setSharedCookie(session);
+    console.log('[AUTH DBG] → calling enterApp()');
     enterApp(currentUser);
+    if (event === 'SIGNED_IN') _executePendingAction(session);
   } else {
     currentUser = null;
     _clearSharedCookie();
+    console.log('[AUTH DBG] → calling enterAuth()');
     enterAuth();
   }
 });
 
 function enterAuth() {
+  console.log('[AUTH DBG] enterAuth() — mode param:', _dlParams.get('mode'));
   document.getElementById('app-auth').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('hidden');
-  showAuthForm('login');
+  showAuthForm(_dlParams.get('mode') === 'signup' ? 'signup' : 'login');
 }
 
 function enterApp(user) {
+  console.log('[AUTH DBG] enterApp() — user:', user?.email);
   document.getElementById('app-auth').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   populateUserUI(user);
@@ -949,19 +1022,23 @@ function enterApp(user) {
 }
 
 function showAuthForm(which) {
+  console.log('[AUTH DBG] showAuthForm called with:', which);
   ['login','signup','confirm'].forEach(f => {
     document.getElementById('form-' + f).classList.toggle('hidden', f !== which);
   });
+  console.log('[AUTH DBG] form-login hidden?', document.getElementById('form-login').classList.contains('hidden'));
+  console.log('[AUTH DBG] form-signup hidden?', document.getElementById('form-signup').classList.contains('hidden'));
 }
 
 function populateUserUI(user) {
-  const email = user.email || '';
-  const initials = email ? email[0].toUpperCase() : '?';
+  const email    = user.email || '';
+  const meta     = user.user_metadata || {};
+  const initials = (meta.first_name?.[0] || email[0] || '?').toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-email-display').textContent = email;
   document.getElementById('settings-email').textContent = email;
 
-  const name = user.user_metadata?.full_name || email.split('@')[0];
+  const name = meta.first_name || meta.full_name || email.split('@')[0];
   document.getElementById('dash-welcome').textContent = `Welcome back, ${name}`;
 
   const now = new Date();
@@ -1000,19 +1077,21 @@ document.getElementById('login-password').addEventListener('keydown', e => {
 
 // ─── SIGNUP ───────────────────────────────────────────────────────────────────
 document.getElementById('btn-signup').addEventListener('click', async () => {
-  const email    = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const errEl    = document.getElementById('signup-error');
-  const btn      = document.getElementById('btn-signup');
+  const firstName = document.getElementById('signup-name').value.trim();
+  const email     = document.getElementById('signup-email').value.trim();
+  const password  = document.getElementById('signup-password').value;
+  const errEl     = document.getElementById('signup-error');
+  const btn       = document.getElementById('btn-signup');
 
   errEl.style.display = 'none';
+  if (!firstName) { errEl.textContent = 'Please enter your first name.'; errEl.style.display = 'block'; return; }
   if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Creating account…';
 
-  const { error } = await sb.auth.signUp({ email, password });
+  const { error } = await sb.auth.signUp({ email, password, options: { data: { first_name: firstName } } });
 
   btn.disabled = false;
   btn.innerHTML = 'Create Account';
