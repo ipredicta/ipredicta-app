@@ -886,14 +886,33 @@ function toast(msg, type = 'info') {
 }
 
 async function _executePendingAction(session) {
-  const raw = localStorage.getItem('ip_pending_action');
-  if (!raw) return;
-  let pending;
-  try { pending = JSON.parse(raw); } catch(_) { localStorage.removeItem('ip_pending_action'); return; }
+  // Resolve pending action: localStorage (same-tab login) or user_metadata (post-email-verification)
+  let pending = null;
+  let fromMetadata = false;
 
-  if (!pending.action || !pending.market_url) { localStorage.removeItem('ip_pending_action'); return; }
+  const raw = localStorage.getItem('ip_pending_action');
+  if (raw) {
+    try { pending = JSON.parse(raw); } catch(_) { localStorage.removeItem('ip_pending_action'); }
+  }
+
+  if (!pending) {
+    const meta = session.user.user_metadata?.pending_action;
+    if (meta) { pending = meta; fromMetadata = true; }
+  }
+
+  if (!pending) return;
+
+  console.log('_executePendingAction called, pending=', pending);
+
+  if (!pending.action || !pending.market_url) {
+    localStorage.removeItem('ip_pending_action');
+    return;
+  }
   if (Date.now() - (pending.created_at || 0) > 24 * 60 * 60 * 1000) {
     localStorage.removeItem('ip_pending_action');
+    if (fromMetadata) {
+      try { await sb.auth.updateUser({ data: { pending_action: null } }); } catch(_) {}
+    }
     return;
   }
 
@@ -914,6 +933,11 @@ async function _executePendingAction(session) {
   }
 
   localStorage.removeItem('ip_pending_action');
+  if (fromMetadata) {
+    try { await sb.auth.updateUser({ data: { pending_action: null } }); }
+    catch(e) { console.warn('Could not clear pending_action from user metadata:', e); }
+  }
+
   toast(pending.action === 'save' ? 'Market saved ✓' : 'Alert set ✓', 'success');
 
   if (pending.return_to) {
@@ -1077,7 +1101,11 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Creating account…';
 
-  const { error } = await sb.auth.signUp({ email, password, options: { data: { first_name: firstName } } });
+  const pendingRaw = localStorage.getItem('ip_pending_action');
+  let pendingData = {};
+  try { if (pendingRaw) pendingData = { pending_action: JSON.parse(pendingRaw) }; } catch(_) {}
+
+  const { error } = await sb.auth.signUp({ email, password, options: { data: { first_name: firstName, ...pendingData } } });
 
   btn.disabled = false;
   btn.innerHTML = 'Create Account';
