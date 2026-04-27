@@ -1068,7 +1068,7 @@ async function loadDashboard() {
   // Bot status via user_preferences
   const { data: prefs } = await sb
     .from('user_preferences')
-    .select('telegram_chat_id, kalshi_api_key, polymarket_wallet')
+    .select('telegram_chat_id, polymarket_wallet')
     .eq('user_id', uid)
     .maybeSingle();
 
@@ -1081,6 +1081,15 @@ async function loadDashboard() {
   // Seed accounts prefs and tg state so sidebar label is correct on first load
   _accountPrefs = prefs || {};
   if (botConnected && _tgState === 'not-connected') _tgState = 'connected';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const kRes = await fetch('/.netlify/functions/kalshi-status', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token }
+      });
+      if (kRes.ok) { const kData = await kRes.json(); _kalshiConnected = kData.connected; }
+    }
+  } catch(e) {}
   updateSidebarAccountsLabel();
 }
 
@@ -1256,10 +1265,12 @@ let _tgCode     = null;
 let _tgUsername = null;
 let _tgPollInt  = null;
 let _tgPollN    = 0;
-let _tgExpired  = false;
+let _tgExpired       = false;
+let _kalshiConnected = false;
+let _kalshiMasked    = null;
 
 function updateSidebarAccountsLabel() {
-  const connected = !!(_accountPrefs?.polymarket_wallet || _accountPrefs?.kalshi_api_key || _accountPrefs?.telegram_chat_id);
+  const connected = !!(_accountPrefs?.polymarket_wallet || _kalshiConnected || _accountPrefs?.telegram_chat_id);
   const sideLabel = connected ? 'My Accounts' : 'Connect Platforms';
   const mobLabel  = connected ? 'Accounts'    : 'Connect';
   const viewTitle = connected ? 'My Accounts' : 'Connect your accounts';
@@ -1278,7 +1289,7 @@ async function loadAccounts() {
 
   const { data: prefs, error } = await sb
     .from('user_preferences')
-    .select('polymarket_wallet, kalshi_api_key')
+    .select('polymarket_wallet')
     .eq('user_id', currentUser.id)
     .maybeSingle();
 
@@ -1289,11 +1300,20 @@ async function loadAccounts() {
 
   _accountPrefs = prefs || {};
 
-  // Seed Telegram state (skip if already polling)
-  if (_tgState !== 'waiting') {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session) {
+  // Fetch Kalshi status and Telegram state
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const kRes = await fetch('/.netlify/functions/kalshi-status', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token }
+      });
+      if (kRes.ok) {
+        const kData = await kRes.json();
+        _kalshiConnected = kData.connected;
+        _kalshiMasked    = kData.masked;
+      }
+
+      if (_tgState !== 'waiting') {
         const tgRes = await fetch('/.netlify/functions/telegram-link-status', {
           headers: { 'Authorization': 'Bearer ' + session.access_token }
         });
@@ -1308,8 +1328,8 @@ async function loadAccounts() {
           }
         }
       }
-    } catch(e) {}
-  }
+    }
+  } catch(e) {}
 
   renderAccountCards();
   updateSidebarAccountsLabel();
@@ -1319,10 +1339,6 @@ function maskWallet(w) {
   if (!w || w.length <= 10) return w || '';
   return w.slice(0, 6) + '••••••••' + w.slice(-4);
 }
-function maskKey(k) {
-  if (!k) return '';
-  return '••••••••' + k.slice(-4);
-}
 
 function renderAccountCards() {
   const prefs = _accountPrefs || {};
@@ -1331,7 +1347,7 @@ function renderAccountCards() {
   container.innerHTML = `
     <div class="platform-cards">
       ${renderPolyCard(!!prefs.polymarket_wallet, prefs.polymarket_wallet)}
-      ${renderKalshiCard(!!prefs.kalshi_api_key, prefs.kalshi_api_key, isUS)}
+      ${renderKalshiCard(_kalshiConnected, _kalshiMasked, isUS)}
       ${renderTelegramCard(_tgState, _tgCode, _tgUsername, _tgExpired)}
       ${renderComingSoonCard('predictit', 'PI', 'PredictIt',  'US political prediction market with small trade limits.')}
       ${renderComingSoonCard('robinhood', 'RH', 'Robinhood',  'Commission-free prediction markets alongside stocks.')}
@@ -1397,7 +1413,7 @@ function renderPolyCard(connected, wallet) {
   </div>`;
 }
 
-function renderKalshiCard(connected, key, isUS) {
+function renderKalshiCard(connected, maskedKey, isUS) {
   const topRow = `
     <div class="platform-card-top">
       <div class="platform-logo kalshi" ${!isUS ? 'style="opacity:.45"' : ''}>K</div>
@@ -1420,7 +1436,7 @@ function renderKalshiCard(connected, key, isUS) {
     return `<div class="platform-card connected" id="card-kalshi">${topRow}
       <div class="platform-credential">
         <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        ${maskKey(key)}
+        ${maskedKey || ''}
       </div>
       <button class="btn-disconnect" onclick="confirmDisconnect('kalshi','Kalshi')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1618,21 +1634,39 @@ async function connectPlatform(platform) {
   const label = platform === 'polymarket' ? 'Polymarket' : 'Kalshi';
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Connecting…'; }
 
-  const payload = { user_id: currentUser.id, updated_at: new Date().toISOString() };
-  if (platform === 'polymarket') payload.polymarket_wallet = value;
-  else                           payload.kalshi_api_key    = value;
-
-  const { error } = await sb.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
-
-  if (error) {
-    toast('Connection failed: ' + error.message, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
-    return;
+  if (platform === 'polymarket') {
+    const { error } = await sb.from('user_preferences').upsert(
+      { user_id: currentUser.id, polymarket_wallet: value, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+    if (error) {
+      toast('Connection failed: ' + error.message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
+      return;
+    }
+    _accountPrefs = _accountPrefs || {};
+    _accountPrefs.polymarket_wallet = value;
+  } else {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      toast('Not authenticated', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
+      return;
+    }
+    const res = await fetch('/.netlify/functions/kalshi-connect', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: value })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast('Connection failed: ' + (err.error || res.statusText), 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
+      return;
+    }
+    _kalshiConnected = true;
+    _kalshiMasked    = '••••••••' + value.slice(-4);
   }
-
-  _accountPrefs = _accountPrefs || {};
-  if (platform === 'polymarket') _accountPrefs.polymarket_wallet = value;
-  else                           _accountPrefs.kalshi_api_key    = value;
 
   toast(label + ' connected', 'success');
   renderAccountCards();
@@ -1684,17 +1718,25 @@ async function executeDisconnect(platform, name) {
     return;
   }
 
-  const payload = { user_id: currentUser.id, updated_at: new Date().toISOString() };
-  if (platform === 'polymarket') payload.polymarket_wallet = null;
-  else                           payload.kalshi_api_key    = null;
-
-  const { error } = await sb.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
-
-  if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
-
-  _accountPrefs = _accountPrefs || {};
-  if (platform === 'polymarket') delete _accountPrefs.polymarket_wallet;
-  else                           delete _accountPrefs.kalshi_api_key;
+  if (platform === 'polymarket') {
+    const { error } = await sb.from('user_preferences').upsert(
+      { user_id: currentUser.id, polymarket_wallet: null, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+    if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
+    _accountPrefs = _accountPrefs || {};
+    delete _accountPrefs.polymarket_wallet;
+  } else {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { toast('Not authenticated', 'error'); return; }
+    const res = await fetch('/.netlify/functions/kalshi-disconnect', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token }
+    });
+    if (!res.ok) { toast('Failed to disconnect Kalshi', 'error'); return; }
+    _kalshiConnected = false;
+    _kalshiMasked    = null;
+  }
 
   toast(name + ' disconnected', 'info');
   renderAccountCards();
