@@ -11,6 +11,7 @@
 <title>iPredicta — Members</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=_tsLoad" async defer></script>
 <style>
 /* ─── RESET & BASE ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -880,6 +881,28 @@ const sb = createClient(
   'sb_publishable_IPf1ZfCF3hUYEOpaV3AyxA_QQh6bgfF'
 );
 
+// ─── TURNSTILE (invisible bot protection on signup) ───────────────────────────
+let _turnstileToken      = null;
+let _tsWidgetId          = null;
+let _turnstileLoginToken = null;
+let _tsLoginWidgetId     = null;
+
+function _tsLoad() {
+  const mkEl = () => { const e = document.createElement('div'); e.style.display = 'none'; document.body.appendChild(e); return e; };
+  _tsWidgetId = turnstile.render(mkEl(), {
+    sitekey:           '0x4AAAAAADE_1HgqCD9wnXtL',
+    size:              'invisible',
+    callback:          token => { _turnstileToken = token; },
+    'refresh-expired': 'auto',
+  });
+  _tsLoginWidgetId = turnstile.render(mkEl(), {
+    sitekey:           '0x4AAAAAADE_1HgqCD9wnXtL',
+    size:              'invisible',
+    callback:          token => { _turnstileLoginToken = token; },
+    'refresh-expired': 'auto',
+  });
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let currentUser = null;
 let marketsCount = 0;
@@ -1101,12 +1124,15 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
   errEl.style.display = 'none';
   if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+  if (!_turnstileLoginToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Signing in…';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken: _turnstileLoginToken } });
 
+  _turnstileLoginToken = null;
+  if (_tsLoginWidgetId !== null && typeof turnstile !== 'undefined') turnstile.reset(_tsLoginWidgetId);
   btn.disabled = false;
   btn.innerHTML = 'Sign In';
 
@@ -1132,6 +1158,7 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   if (!firstName) { errEl.textContent = 'Please enter your first name.'; errEl.style.display = 'block'; return; }
   if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+  if (!_turnstileToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Creating account…';
@@ -1140,8 +1167,10 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   let pendingData = {};
   try { if (pendingRaw) pendingData = { pending_action: JSON.parse(pendingRaw) }; } catch(_) {}
 
-  const { error } = await sb.auth.signUp({ email, password, options: { data: { first_name: firstName, ...pendingData } } });
+  const { error } = await sb.auth.signUp({ email, password, options: { captchaToken: _turnstileToken, data: { first_name: firstName, ...pendingData } } });
 
+  _turnstileToken = null;
+  if (_tsWidgetId !== null && typeof turnstile !== 'undefined') turnstile.reset(_tsWidgetId);
   btn.disabled = false;
   btn.innerHTML = 'Create Account';
 
