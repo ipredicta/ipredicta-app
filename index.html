@@ -96,8 +96,20 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
    AUTH SCREEN
 ════════════════════════════════════════════════════════════════════════════ */
 #app-auth {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 24px; position: relative; overflow: hidden; background: #080d1a;
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  position: relative; overflow: hidden; background: #080d1a;
+}
+.auth-top-bar {
+  flex-shrink: 0; width: 100%; padding: 18px 24px; position: relative; z-index: 2;
+}
+.auth-back-link {
+  font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.4);
+  text-decoration: none; letter-spacing: .02em; transition: color var(--transition);
+}
+.auth-back-link:hover { color: rgba(255,255,255,.75); }
+.auth-body {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 0 24px 24px;
 }
 #app-auth::before {
   content: ''; position: absolute; inset: 0;
@@ -177,6 +189,12 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   letter-spacing: .1em; text-transform: uppercase; color: var(--blue);
   background: rgba(41,121,232,.15); border-radius: 4px; padding: 2px 7px;
 }
+.sidebar-back-link {
+  display: block; font-size: .72rem; font-weight: 600; color: rgba(255,255,255,.35);
+  text-decoration: none; padding: 10px 20px 14px; letter-spacing: .02em;
+  transition: color var(--transition);
+}
+.sidebar-back-link:hover { color: rgba(255,255,255,.7); }
 .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
 .nav-section-label {
   font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
@@ -223,6 +241,11 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   background: #080d1a; border-bottom: 1px solid rgba(255,255,255,.07);
   align-items: center; justify-content: space-between; padding: 0 18px; z-index: 200;
 }
+.mobile-back-link {
+  font-size: .72rem; font-weight: 600; color: rgba(255,255,255,.4);
+  text-decoration: none; white-space: nowrap; transition: color var(--transition);
+}
+.mobile-back-link:hover { color: rgba(255,255,255,.75); }
 .hamburger {
   background: none; border: none; padding: 4px; display: flex; flex-direction: column;
   gap: 5px; cursor: pointer;
@@ -553,6 +576,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
      AUTH SCREEN
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="app-auth">
+  <div class="auth-top-bar">
+    <a class="auth-back-link" href="https://ipredicta.co">← Browse markets</a>
+  </div>
+  <div class="auth-body">
   <div class="auth-card">
     <div class="auth-logo">
       <img src="assets/logo-horizontal.svg" alt="iPredicta" style="max-width:200px;height:auto;display:block;margin:0 auto">
@@ -605,6 +632,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       <button class="back-link" id="back-to-login">← Back to sign in</button>
     </div>
   </div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════════
@@ -614,6 +642,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 
   <!-- Mobile header -->
   <header class="mobile-header">
+    <a class="mobile-back-link" href="https://ipredicta.co">← Markets</a>
     <img src="assets/logo-white.png" alt="iPredicta" style="height:30px;width:auto">
     <button class="hamburger" id="hamburger" aria-label="Open menu">
       <span class="ham-line"></span>
@@ -631,6 +660,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       <img src="assets/logo-white.png" alt="iPredicta" style="height:34px;width:auto;display:block">
       <div class="logo-badge">Members</div>
     </div>
+    <a class="sidebar-back-link" href="https://ipredicta.co">← Browse markets</a>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Menu</div>
       <button class="nav-item active" data-view="dashboard">
