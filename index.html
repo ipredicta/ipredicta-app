@@ -11,7 +11,7 @@
 <title>iPredicta — Members</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 <style>
 /* ─── RESET & BASE ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -905,14 +905,6 @@ function _tsLoad() {
 
 if (window.turnstile && window.turnstile.ready) {
   window.turnstile.ready(_tsLoad);
-} else {
-  const _tsPoll = setInterval(() => {
-    if (window.turnstile && window.turnstile.ready) {
-      clearInterval(_tsPoll);
-      window.turnstile.ready(_tsLoad);
-    }
-  }, 50);
-  setTimeout(() => clearInterval(_tsPoll), 10000);
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
