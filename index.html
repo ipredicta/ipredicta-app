@@ -598,6 +598,89 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 @media (max-width: 420px) {
   .stats-grid { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ONBOARDING OVERLAY
+════════════════════════════════════════════════════════════════════════════ */
+#onboarding-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; justify-content: center; align-items: flex-start;
+  overflow-y: auto; padding: 40px 20px;
+}
+.onb-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(8,13,26,.55);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.onb-card-wrap { position: relative; width: 100%; max-width: 560px; margin: auto; }
+.onb-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 36px 32px;
+  box-shadow: 0 20px 60px rgba(13,27,62,.35);
+}
+.onb-header { margin-bottom: 22px; text-align: center; }
+.onb-header h2 {
+  font-size: 1.5rem; font-weight: 800; color: var(--navy); margin-bottom: 6px;
+}
+.onb-header p { font-size: .9rem; color: var(--text-mid); }
+
+.onb-section { margin-bottom: 22px; }
+.onb-question {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .92rem; font-weight: 700; color: var(--navy); margin-bottom: 10px;
+}
+.onb-hint { font-size: .78rem; color: var(--text-light); margin: -4px 0 8px; }
+
+.onb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.onb-chip {
+  padding: 9px 14px; background: var(--surface);
+  border: 1.5px solid var(--border); border-radius: 999px;
+  font-size: .85rem; font-weight: 500; color: var(--text-mid);
+  cursor: pointer; transition: all var(--transition);
+}
+.onb-chip:hover { border-color: var(--blue); color: var(--navy); background: var(--blue-pale); }
+.onb-chip.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
+.onb-chip.selected:hover { background: #3a8af8; color: #fff; }
+.onb-chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.onb-detail-wrap { margin-top: 14px; }
+.onb-detail-label {
+  display: block; font-size: .78rem; font-weight: 600;
+  color: var(--text-mid); margin-bottom: 6px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+.onb-legacy-consent { margin-bottom: 22px; }
+.onb-consent {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px; background: var(--blue-pale);
+  border: 1px solid rgba(41,121,232,.2); border-radius: var(--radius-sm);
+  font-size: .85rem; color: var(--navy); line-height: 1.5; cursor: pointer;
+}
+.onb-consent input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;
+  border: 1.5px solid var(--border-2); border-radius: 4px;
+  background: #fff; cursor: pointer; position: relative;
+  transition: background var(--transition), border-color var(--transition);
+}
+.onb-consent input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--blue); outline-offset: 2px;
+}
+.onb-consent input[type="checkbox"]:checked { background: var(--blue); border-color: var(--blue); }
+.onb-consent input[type="checkbox"]:checked::after {
+  content: ''; position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px; border: solid #fff;
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.onb-consent a { color: var(--blue); font-weight: 600; }
+.onb-consent a:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  #onboarding-overlay { padding: 20px 12px; }
+  .onb-card { padding: 28px 22px; }
+  .onb-header h2 { font-size: 1.3rem; }
+}
 </style>
 </head>
 <body>
@@ -904,6 +987,105 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   </div>
 </div>
 
+<!-- Onboarding overlay -->
+<div id="onboarding-overlay" class="hidden">
+  <div class="onb-backdrop"></div>
+  <div class="onb-card-wrap">
+    <div class="onb-card">
+      <div class="onb-header">
+        <h2>Welcome to iPredicta</h2>
+        <p>A few quick questions so we can tailor your dashboard.</p>
+      </div>
+
+      <div id="onboarding-error" class="auth-error"></div>
+
+      <!-- Legacy-user combined consent (only shown when user_metadata.age_18_plus_confirmed is missing/false) -->
+      <div id="onb-legacy-consent" class="onb-legacy-consent hidden">
+        <label class="onb-consent" for="onb-legacy-consent-cb">
+          <input type="checkbox" id="onb-legacy-consent-cb">
+          <span>I confirm I am 18 or over and accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
+      </div>
+
+      <!-- Q1 — Age range -->
+      <div class="onb-section">
+        <div class="onb-question">What's your age range?</div>
+        <div class="onb-chips" data-question="age_bracket" data-mode="single">
+          <button type="button" class="onb-chip" data-value="18-24">18–24</button>
+          <button type="button" class="onb-chip" data-value="25-34">25–34</button>
+          <button type="button" class="onb-chip" data-value="35-44">35–44</button>
+          <button type="button" class="onb-chip" data-value="45-54">45–54</button>
+          <button type="button" class="onb-chip" data-value="55+">55+</button>
+        </div>
+      </div>
+
+      <!-- Q2 — Location -->
+      <div class="onb-section">
+        <div class="onb-question">Where are you based?</div>
+        <div class="onb-chips" data-question="location" data-mode="single">
+          <button type="button" class="onb-chip" data-value="UK">UK</button>
+          <button type="button" class="onb-chip" data-value="US">US</button>
+          <button type="button" class="onb-chip" data-value="EU">EU</button>
+          <button type="button" class="onb-chip" data-value="Canada">Canada</button>
+          <button type="button" class="onb-chip" data-value="Australia">Australia</button>
+          <button type="button" class="onb-chip" data-value="LATAM">LATAM</button>
+          <button type="button" class="onb-chip" data-value="Asia">Asia</button>
+          <button type="button" class="onb-chip" data-value="Other">Other</button>
+        </div>
+      </div>
+
+      <!-- Q3 — Markets (multi) -->
+      <div class="onb-section">
+        <div class="onb-question">Which markets interest you most?</div>
+        <div class="onb-hint">Pick one or more</div>
+        <div class="onb-chips" data-question="dashboard_interests" data-mode="multi">
+          <button type="button" class="onb-chip" data-value="politics">Politics</button>
+          <button type="button" class="onb-chip" data-value="economy">Economy</button>
+          <button type="button" class="onb-chip" data-value="crypto">Crypto</button>
+          <button type="button" class="onb-chip" data-value="sport">Sport</button>
+          <button type="button" class="onb-chip" data-value="science_tech">Science &amp; Tech</button>
+          <button type="button" class="onb-chip" data-value="entertainment">Entertainment</button>
+          <button type="button" class="onb-chip" data-value="world_affairs">World Affairs</button>
+          <button type="button" class="onb-chip" data-value="health">Health</button>
+          <button type="button" class="onb-chip" data-value="energy_climate">Energy &amp; Climate</button>
+          <button type="button" class="onb-chip" data-value="media_culture">Media &amp; Culture</button>
+        </div>
+      </div>
+
+      <!-- Q4 — Experience -->
+      <div class="onb-section">
+        <div class="onb-question">How would you describe your experience with prediction markets?</div>
+        <div class="onb-chips" data-question="experience_level" data-mode="single">
+          <button type="button" class="onb-chip" data-value="beginner">Beginner</button>
+          <button type="button" class="onb-chip" data-value="intermediate">Intermediate</button>
+          <button type="button" class="onb-chip" data-value="advanced">Advanced</button>
+        </div>
+      </div>
+
+      <!-- Q5 — Attribution + conditional detail -->
+      <div class="onb-section">
+        <div class="onb-question">How did you hear about iPredicta?</div>
+        <div class="onb-chips" data-question="attribution_source" data-mode="single">
+          <button type="button" class="onb-chip" data-value="search">Search/Google</button>
+          <button type="button" class="onb-chip" data-value="social">Social</button>
+          <button type="button" class="onb-chip" data-value="friend">Friend</button>
+          <button type="button" class="onb-chip" data-value="reddit">Reddit</button>
+          <button type="button" class="onb-chip" data-value="twitter">Twitter/X</button>
+          <button type="button" class="onb-chip" data-value="newsletter">Newsletter</button>
+          <button type="button" class="onb-chip" data-value="podcast">Podcast</button>
+          <button type="button" class="onb-chip" data-value="other">Other</button>
+        </div>
+        <div id="onb-attribution-detail" class="onb-detail-wrap hidden">
+          <label id="onb-attribution-detail-label" class="onb-detail-label" for="onb-attribution-detail-input">Tell us more</label>
+          <input type="text" id="onb-attribution-detail-input" class="form-input" placeholder="A quick detail">
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-onboarding-submit">Save and continue</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
@@ -1123,16 +1305,21 @@ sb.auth.onAuthStateChange((event, session) => {
 });
 
 function enterAuth() {
+  hideOnboardingOverlay();
   document.getElementById('app-auth').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('hidden');
   showAuthForm(_dlParams.get('mode') === 'signup' ? 'signup' : 'login');
 }
 
-function enterApp(user) {
+async function enterApp(user) {
   document.getElementById('app-auth').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   populateUserUI(user);
+  // Load the dashboard first so the overlay reads as "finish this to unlock"
+  // rather than "the app failed to load." The onboarding check runs in parallel.
   loadDashboard();
+  const needsOnboarding = await checkOnboarding(user);
+  if (needsOnboarding) showOnboardingOverlay(user);
 }
 
 function showAuthForm(which) {
@@ -1972,6 +2159,155 @@ async function executeDisconnect(platform, name) {
   renderAccountCards();
   updateSidebarAccountsLabel();
 }
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+let _onbState = null;
+let _onbNeedsLegacyConsent = false;
+
+async function checkOnboarding(user) {
+  const { data, error } = await sb
+    .from('user_preferences')
+    .select('onboarding_completed_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('Onboarding check failed; proceeding without overlay:', error);
+    return false;
+  }
+  return !data || !data.onboarding_completed_at;
+}
+
+function showOnboardingOverlay(user) {
+  _onbState = {
+    age_bracket:         null,
+    location:            null,
+    dashboard_interests: [],
+    experience_level:    null,
+    attribution_source:  null,
+    attribution_detail:  ''
+  };
+
+  const meta = user.user_metadata || {};
+  _onbNeedsLegacyConsent = !meta.age_18_plus_confirmed;
+  document.getElementById('onb-legacy-consent').classList.toggle('hidden', !_onbNeedsLegacyConsent);
+  document.getElementById('onb-legacy-consent-cb').checked = false;
+
+  document.querySelectorAll('#onboarding-overlay .onb-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('onb-attribution-detail').classList.add('hidden');
+  document.getElementById('onb-attribution-detail-input').value = '';
+
+  const errEl = document.getElementById('onboarding-error');
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  document.getElementById('onboarding-overlay').classList.remove('hidden');
+  document.getElementById('app-shell').style.pointerEvents = 'none';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideOnboardingOverlay() {
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  document.getElementById('app-shell').style.pointerEvents = '';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('onboarding-overlay').addEventListener('click', (e) => {
+  const chip = e.target.closest('.onb-chip');
+  if (!chip || !_onbState) return;
+  const group = chip.closest('.onb-chips');
+  if (!group) return;
+  const question = group.dataset.question;
+  const mode     = group.dataset.mode;
+  const value    = chip.dataset.value;
+
+  if (mode === 'multi') {
+    const arr = _onbState[question];
+    const idx = arr.indexOf(value);
+    if (idx >= 0) { arr.splice(idx, 1); chip.classList.remove('selected'); }
+    else          { arr.push(value);    chip.classList.add('selected');    }
+    return;
+  }
+
+  group.querySelectorAll('.onb-chip').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  _onbState[question] = value;
+
+  if (question === 'attribution_source') {
+    const wrap  = document.getElementById('onb-attribution-detail');
+    const label = document.getElementById('onb-attribution-detail-label');
+    const input = document.getElementById('onb-attribution-detail-input');
+    const needs = ['podcast','newsletter','other'].includes(value);
+    wrap.classList.toggle('hidden', !needs);
+    if (needs) {
+      label.textContent =
+        value === 'podcast'    ? 'Which podcast?'    :
+        value === 'newsletter' ? 'Which newsletter?' :
+                                 'Tell us more';
+      input.focus();
+    } else {
+      input.value = '';
+      _onbState.attribution_detail = '';
+    }
+  }
+});
+
+document.getElementById('onb-attribution-detail-input').addEventListener('input', (e) => {
+  if (_onbState) _onbState.attribution_detail = e.target.value.trim();
+});
+
+document.getElementById('btn-onboarding-submit').addEventListener('click', async () => {
+  if (!_onbState || !currentUser) return;
+  const errEl = document.getElementById('onboarding-error');
+  const btn   = document.getElementById('btn-onboarding-submit');
+  errEl.style.display = 'none';
+
+  if (!_onbState.age_bracket)                { errEl.textContent = 'Please choose your age range.';                 errEl.style.display = 'block'; return; }
+  if (!_onbState.location)                   { errEl.textContent = 'Please tell us where you are based.';           errEl.style.display = 'block'; return; }
+  if (!_onbState.dashboard_interests.length) { errEl.textContent = 'Please pick at least one market.';              errEl.style.display = 'block'; return; }
+  if (!_onbState.experience_level)           { errEl.textContent = 'Please choose your experience level.';          errEl.style.display = 'block'; return; }
+  if (!_onbState.attribution_source)         { errEl.textContent = 'Please tell us how you heard about iPredicta.'; errEl.style.display = 'block'; return; }
+  if (['podcast','newsletter','other'].includes(_onbState.attribution_source) && !_onbState.attribution_detail) {
+    errEl.textContent = 'Please add a quick detail for your selection.'; errEl.style.display = 'block'; return;
+  }
+  if (_onbNeedsLegacyConsent && !document.getElementById('onb-legacy-consent-cb').checked) {
+    errEl.textContent = 'Please confirm you are 18 or over and accept our Terms.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Saving…';
+
+  const meta = currentUser.user_metadata || {};
+  const now  = new Date().toISOString();
+  const payload = {
+    user_id:                 currentUser.id,
+    age_bracket:             _onbState.age_bracket,
+    location:                _onbState.location,
+    dashboard_interests:     _onbState.dashboard_interests,
+    experience_level:        _onbState.experience_level,
+    attribution_source:      _onbState.attribution_source,
+    attribution_detail:      _onbState.attribution_detail || null,
+    onboarding_completed_at: now,
+    updated_at:              now,
+    age_18_plus_confirmed:   _onbNeedsLegacyConsent ? true : (meta.age_18_plus_confirmed ?? true),
+    terms_accepted_at:       _onbNeedsLegacyConsent ? now  : (meta.terms_accepted_at  ?? now)
+  };
+
+  const { error } = await sb.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
+
+  btn.disabled = false;
+  btn.textContent = 'Save and continue';
+
+  if (error) {
+    errEl.textContent = 'Could not save: ' + error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  hideOnboardingOverlay();
+  toast('Welcome to iPredicta — your dashboard is tailored to you now', 'success');
+});
 
 </script>
 </body>
