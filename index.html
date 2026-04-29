@@ -159,6 +159,35 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   background: #fdeef0; border: 1px solid var(--red); border-radius: var(--radius-sm);
   padding: 10px 14px; font-size: .83rem; color: var(--red); margin-bottom: 16px; display: none;
 }
+.auth-checks { margin: 18px 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.auth-check {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 2px; cursor: pointer;
+  font-size: .82rem; color: rgba(255,255,255,.78); line-height: 1.5;
+  user-select: none;
+}
+.auth-check input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;
+  border: 1.5px solid rgba(255,255,255,.28); border-radius: 4px;
+  background: rgba(255,255,255,.05); cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+.auth-check input[type="checkbox"]:hover { border-color: rgba(255,255,255,.5); }
+.auth-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--blue); outline-offset: 2px;
+}
+.auth-check input[type="checkbox"]:checked {
+  background: var(--blue); border-color: var(--blue);
+}
+.auth-check input[type="checkbox"]:checked::after {
+  content: ''; position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px; border: solid #fff;
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.auth-check a { color: var(--blue-light); text-decoration: underline; }
+.auth-check a:hover { color: #7cc8ff; }
 .auth-success { text-align: center; padding: 8px 0; }
 .auth-success-icon {
   width: 56px; height: 56px; background: rgba(0,184,122,.15); border: 2px solid var(--green);
@@ -620,6 +649,16 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       <div class="form-group">
         <label class="form-label" for="signup-password">Password</label>
         <input class="form-input" type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password">
+      </div>
+      <div class="auth-checks">
+        <label class="auth-check" for="signup-age-confirm">
+          <input type="checkbox" id="signup-age-confirm">
+          <span>I confirm I am 18 or over</span>
+        </label>
+        <label class="auth-check" for="signup-terms-accept">
+          <input type="checkbox" id="signup-terms-accept">
+          <span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
       </div>
       <button class="btn-primary" id="btn-signup">Create Account</button>
       <div class="auth-toggle">Already have an account? <button id="go-login">Sign in</button></div>
@@ -1119,21 +1158,32 @@ function populateUserUI(user) {
   });
 }
 
+// Local-dev bypass for Turnstile: file://, localhost, or ?dev=1.
+// Captcha tokens can't be issued outside registered domains, so skip the
+// captcha gate in dev only — age/terms validation still runs.
+const _isDevMode = () =>
+  window.location.protocol === 'file:'
+  || window.location.hostname === 'localhost'
+  || window.location.search.includes('dev=1');
+
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click', async () => {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const errEl    = document.getElementById('login-error');
   const btn      = document.getElementById('btn-login');
+  const isDev    = _isDevMode();
 
   errEl.style.display = 'none';
   if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
-  if (!_turnstileLoginToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (!isDev && !_turnstileLoginToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (isDev) console.warn('[dev] Turnstile bypassed for local testing');
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Signing in…';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken: _turnstileLoginToken } });
+  const loginOpts = isDev ? {} : { captchaToken: _turnstileLoginToken };
+  const { error } = await sb.auth.signInWithPassword({ email, password, options: loginOpts });
 
   _turnstileLoginToken = null;
   if (_tsLoginWidgetId !== null && typeof turnstile !== 'undefined') turnstile.reset(_tsLoginWidgetId);
@@ -1155,14 +1205,20 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   const firstName = document.getElementById('signup-name').value.trim();
   const email     = document.getElementById('signup-email').value.trim();
   const password  = document.getElementById('signup-password').value;
+  const ageOk     = document.getElementById('signup-age-confirm').checked;
+  const termsOk   = document.getElementById('signup-terms-accept').checked;
   const errEl     = document.getElementById('signup-error');
   const btn       = document.getElementById('btn-signup');
+  const isDev     = _isDevMode();
 
   errEl.style.display = 'none';
   if (!firstName) { errEl.textContent = 'Please enter your first name.'; errEl.style.display = 'block'; return; }
   if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
-  if (!_turnstileToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (!ageOk) { errEl.textContent = 'Please confirm you are 18 or over.'; errEl.style.display = 'block'; return; }
+  if (!termsOk) { errEl.textContent = 'Please accept the Terms of Service and Privacy Policy.'; errEl.style.display = 'block'; return; }
+  if (!isDev && !_turnstileToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (isDev) console.warn('[dev] Turnstile bypassed for local testing');
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Creating account…';
@@ -1171,7 +1227,20 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   let pendingData = {};
   try { if (pendingRaw) pendingData = { pending_action: JSON.parse(pendingRaw) }; } catch(_) {}
 
-  const { error } = await sb.auth.signUp({ email, password, options: { captchaToken: _turnstileToken, data: { first_name: firstName, ...pendingData } } });
+  const termsAcceptedAt = new Date().toISOString();
+  const { error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      ...(isDev ? {} : { captchaToken: _turnstileToken }),
+      data: {
+        first_name: firstName,
+        age_18_plus_confirmed: true,
+        terms_accepted_at: termsAcceptedAt,
+        ...pendingData
+      }
+    }
+  });
 
   _turnstileToken = null;
   if (_tsWidgetId !== null && typeof turnstile !== 'undefined') turnstile.reset(_tsWidgetId);
