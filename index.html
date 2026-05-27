@@ -1103,24 +1103,47 @@ const sb = createClient(
 );
 
 // ─── TURNSTILE (invisible bot protection on signup) ───────────────────────────
-let _turnstileToken      = null;
-let _tsWidgetId          = null;
-let _turnstileLoginToken = null;
-let _tsLoginWidgetId     = null;
+let _turnstileToken          = null;
+let _tsWidgetId              = null;
+let _turnstileLoginToken     = null;
+let _tsLoginWidgetId         = null;
+let _turnstileSignupErrorMsg = null;
+let _turnstileLoginErrorMsg  = null;
+
+const _TS_ERR_MSG = {
+  error:       'Security check failed. Please refresh and try again. If you\'re in the Twitter or X app, try opening in Chrome or Safari.',
+  timeout:     'Security check timed out. Please refresh and try again.',
+  unsupported: 'Your browser doesn\'t support our security check. Please try Chrome, Safari, or Firefox.',
+};
+
+function _logTs(kind, ...rest) { console.error('[turnstile]', kind, ...rest); }
+
+function _showTurnstileError(formKey, msg) {
+  if (formKey === 'signup') _turnstileSignupErrorMsg = msg;
+  else                      _turnstileLoginErrorMsg  = msg;
+  const el = document.getElementById(`${formKey}-error`);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
 
 function _tsLoad() {
   const mkEl = () => { const e = document.createElement('div'); e.style.display = 'none'; document.body.appendChild(e); return e; };
   _tsWidgetId = turnstile.render(mkEl(), {
-    sitekey:           '0x4AAAAAADE_1HgqCD9wnXtL',
-    size:              'invisible',
-    callback:          token => { _turnstileToken = token; },
-    'refresh-expired': 'auto',
+    sitekey:                '0x4AAAAAADE_1HgqCD9wnXtL',
+    size:                   'invisible',
+    callback:               token => { _turnstileToken = token; _turnstileSignupErrorMsg = null; },
+    'error-callback':       code => { _turnstileToken = null; _logTs('signup error-callback', code); _showTurnstileError('signup', _TS_ERR_MSG.error); },
+    'timeout-callback':     ()   => { _turnstileToken = null; _logTs('signup timeout-callback');     _showTurnstileError('signup', _TS_ERR_MSG.timeout); },
+    'unsupported-callback': ()   => { _turnstileToken = null; _logTs('signup unsupported-callback'); _showTurnstileError('signup', _TS_ERR_MSG.unsupported); },
+    'refresh-expired':      'auto',
   });
   _tsLoginWidgetId = turnstile.render(mkEl(), {
-    sitekey:           '0x4AAAAAADE_1HgqCD9wnXtL',
-    size:              'invisible',
-    callback:          token => { _turnstileLoginToken = token; },
-    'refresh-expired': 'auto',
+    sitekey:                '0x4AAAAAADE_1HgqCD9wnXtL',
+    size:                   'invisible',
+    callback:               token => { _turnstileLoginToken = token; _turnstileLoginErrorMsg = null; },
+    'error-callback':       code => { _turnstileLoginToken = null; _logTs('login error-callback', code); _showTurnstileError('login', _TS_ERR_MSG.error); },
+    'timeout-callback':     ()   => { _turnstileLoginToken = null; _logTs('login timeout-callback');     _showTurnstileError('login', _TS_ERR_MSG.timeout); },
+    'unsupported-callback': ()   => { _turnstileLoginToken = null; _logTs('login unsupported-callback'); _showTurnstileError('login', _TS_ERR_MSG.unsupported); },
+    'refresh-expired':      'auto',
   });
 }
 
@@ -1363,7 +1386,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
   errEl.style.display = 'none';
   if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
-  if (!isDev && !_turnstileLoginToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (!isDev && !_turnstileLoginToken) { errEl.textContent = _turnstileLoginErrorMsg || 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
   if (isDev) console.warn('[dev] Turnstile bypassed for local testing');
 
   btn.disabled = true;
@@ -1404,7 +1427,7 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
   if (!ageOk) { errEl.textContent = 'Please confirm you are 18 or over.'; errEl.style.display = 'block'; return; }
   if (!termsOk) { errEl.textContent = 'Please accept the Terms of Service and Privacy Policy.'; errEl.style.display = 'block'; return; }
-  if (!isDev && !_turnstileToken) { errEl.textContent = 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
+  if (!isDev && !_turnstileToken) { errEl.textContent = _turnstileSignupErrorMsg || 'Security check in progress — please try again in a moment.'; errEl.style.display = 'block'; return; }
   if (isDev) console.warn('[dev] Turnstile bypassed for local testing');
 
   btn.disabled = true;
