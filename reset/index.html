@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<title>Reset password — iPredicta</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#f7f9fc; --surface:#ffffff; --navy:#0d1b3e; --blue:#2979e8; --blue-light:#4fb3f6;
+  --text:#0d1b3e; --text-mid:#475569; --text-light:#64748b; --border:#e2e8f4; --radius:14px;
+  --danger:#dc2626; --ok:#059669;
+}
+html, body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.6; min-height:100%; -webkit-font-smoothing:antialiased; }
+body { display:flex; flex-direction:column; min-height:100vh; }
+h1 { font-family:'Syne',sans-serif; letter-spacing:-.02em; color:var(--navy); }
+a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+.site-header { background:#080d1a; padding:18px 24px; border-bottom:1px solid rgba(255,255,255,.07); }
+.site-header img { display:block; max-height:28px; width:auto; }
+.content-shell { flex:1; width:100%; max-width:460px; margin:0 auto; padding:56px 24px 80px; }
+.content-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:40px 36px; box-shadow:0 1px 4px rgba(13,27,62,.06); }
+.page-eyebrow { font-size:.72rem; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px; }
+h1.page-title { font-size:1.6rem; font-weight:800; margin-bottom:10px; }
+.lede { color:var(--text-mid); margin-bottom:24px; }
+label { display:block; font-size:.8rem; font-weight:600; color:var(--navy); margin-bottom:6px; }
+input { width:100%; padding:13px 14px; font-family:inherit; font-size:15px; color:var(--text); background:#fff; border:1.5px solid var(--border); border-radius:10px; margin-bottom:6px; }
+input:focus { outline:none; border-color:var(--blue); }
+.hint { font-size:.8rem; color:var(--text-light); margin-bottom:16px; }
+button { width:100%; padding:14px; font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:#fff; background:var(--blue); border:none; border-radius:10px; cursor:pointer; }
+button:disabled { background:#9db8e8; cursor:not-allowed; }
+.msg { font-size:.88rem; margin:14px 0 0; padding:12px 14px; border-radius:10px; }
+.msg.err { background:#fef2f2; color:var(--danger); border:1px solid #fecaca; }
+.msg.ok { background:#ecfdf5; color:var(--ok); border:1px solid #a7f3d0; }
+.page-back { display:inline-block; margin-top:24px; font-size:.85rem; color:var(--text-light); font-weight:600; }
+.page-back:hover { color:var(--blue); text-decoration:none; }
+.site-footer { border-top:1px solid var(--border); padding:22px 24px; text-align:center; font-size:.8rem; color:var(--text-light); }
+[hidden] { display:none !important; }
+@media (max-width:600px){ .content-card{ padding:32px 24px; } h1.page-title{ font-size:1.4rem; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a href="https://ipredicta.co"><img src="/assets/logo-horizontal.svg" alt="iPredicta"></a>
+</header>
+
+<main class="content-shell">
+  <div class="content-card">
+    <div class="page-eyebrow">Account</div>
+
+    <!-- STATE: request a reset link -->
+    <section id="request">
+      <h1 class="page-title">Reset your password</h1>
+      <p class="lede">Enter the email on your iPredicta account and we'll send a link to set a new password.</p>
+      <form id="requestForm" novalidate>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <button id="requestBtn" type="submit">Send reset link</button>
+      </form>
+    </section>
+
+    <!-- STATE: link sent -->
+    <section id="sent" hidden>
+      <h1 class="page-title">Check your inbox</h1>
+      <p class="lede">If an account exists for that email, a reset link is on its way. Open it on this device to set a new password. The link expires after a while, so use it soon.</p>
+    </section>
+
+    <!-- STATE: set a new password (arrived via a recovery link) -->
+    <section id="recover" hidden>
+      <h1 class="page-title">Set a new password</h1>
+      <p class="lede">Choose a new password for your iPredicta account.</p>
+      <form id="recoverForm" novalidate>
+        <label for="pw">New password</label>
+        <input id="pw" type="password" autocomplete="new-password" placeholder="At least 8 characters" required>
+        <p class="hint">Must be at least 8 characters.</p>
+        <label for="pw2">Confirm new password</label>
+        <input id="pw2" type="password" autocomplete="new-password" placeholder="Re-enter password" required>
+        <button id="recoverBtn" type="submit">Update password</button>
+      </form>
+    </section>
+
+    <!-- STATE: done -->
+    <section id="done" hidden>
+      <h1 class="page-title">Password updated</h1>
+      <p class="lede">Your password has been changed. You can now sign in with it — open the iPredicta app, or continue on the web.</p>
+      <a class="page-back" href="/">← Go to sign in</a>
+    </section>
+
+    <div id="msg" class="msg" hidden></div>
+    <a class="page-back" id="backLink" href="/">← Back to iPredicta</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  &copy; <script>document.write(new Date().getFullYear())</script> iPredicta. All rights reserved.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  'use strict';
+  const { createClient } = window.supabase;
+  // Same project + publishable key as the members-area index.html.
+  const sb = createClient(
+    'https://xcjoclataeywhneruqrg.supabase.co',
+    'sb_publishable_IPf1ZfCF3hUYEOpaV3AyxA_QQh6bgfF'
+  );
+  const MIN = 8; // stated rule; matches the iOS app. Supabase server minimum is 6.
+  const REDIRECT = window.location.origin + '/reset';
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => { ['request','sent','recover','done'].forEach(s => { $(s).hidden = (s !== id); }); };
+  const msg = (text, kind) => { const m = $('msg'); m.textContent = text; m.className = 'msg ' + (kind || 'err'); m.hidden = !text; };
+
+  // A recovery link lands here as #...type=recovery (or #error=... if expired).
+  // supabase-js parses the hash on load; we also read it directly so the right
+  // panel shows immediately, and we listen for PASSWORD_RECOVERY as the robust
+  // signal. An error in the hash (expired/used link) is surfaced, not hidden.
+  const hash = window.location.hash || '';
+  let recoveryMode = /type=recovery/.test(hash);
+  if (/error=/.test(hash)) {
+    const desc = decodeURIComponent((hash.match(/error_description=([^&]*)/) || [,''])[1]).replace(/\+/g, ' ');
+    show('request');
+    msg(desc ? (desc + ' Request a new link below.') : 'That reset link is invalid or has expired. Request a new one below.', 'err');
+  } else if (recoveryMode) {
+    show('recover');
+  } else {
+    show('request');
+  }
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') { recoveryMode = true; msg('', ''); show('recover'); }
+  });
+
+  // ── Request a reset link ────────────────────────────────────────────────
+  $('requestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('email').value.trim();
+    if (!email) { msg('Enter your email.', 'err'); return; }
+    $('requestBtn').disabled = true; msg('', '');
+    // Neutral outcome regardless of whether the email exists (no account
+    // enumeration). resetPasswordForEmail returns success either way.
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: REDIRECT });
+    $('requestBtn').disabled = false;
+    if (error) { msg(error.message || 'Could not send the reset link. Try again.', 'err'); return; }
+    show('sent');
+  });
+
+  // ── Set a new password (recovery session established from the link) ──────
+  $('recoverForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pw = $('pw').value, pw2 = $('pw2').value;
+    if (pw.length < MIN) { msg('Password must be at least ' + MIN + ' characters.', 'err'); return; }
+    if (pw !== pw2) { msg('The two passwords do not match.', 'err'); return; }
+    $('recoverBtn').disabled = true; msg('', '');
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) {
+      $('recoverBtn').disabled = false;
+      // Most common: the recovery session is missing/expired by the time they submit.
+      const m = /session|jwt|expired|not.*authenticated/i.test(error.message || '')
+        ? 'Your reset link has expired. Request a new one below.'
+        : (error.message || 'Could not update your password. Try again.');
+      if (/expired|session|jwt|authenticated/i.test(m)) { show('request'); }
+      msg(m, 'err');
+      return;
+    }
+    // Clean up the recovery session so a shared device isn't left signed in.
+    try { await sb.auth.signOut(); } catch (_) {}
+    show('done');
+  });
+})();
+</script>
+</body>
+</html>
