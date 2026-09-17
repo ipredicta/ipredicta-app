@@ -1964,10 +1964,18 @@ function renderTelegramCard(state, code, username, expired) {
     </div>`;
   }
 
+  /* CONNECTING IS DISABLED, 17 September 2026, because it cannot work. The bot ignores the
+     code: telegram-bot.js:599 discards the argument after "/start ", and handleStart (440-462)
+     upserts on telegram_id alone, never reading telegram_link_codes and never writing user_id.
+     A code issued here was never consumed and expired after 15 minutes while this card sat on
+     "Waiting for you to hit Start…" indefinitely. A control that does nothing is worse than no
+     control. Re-enable by restoring the onclick when the bot consumes codes; connectTelegram()
+     is deliberately left in place so that is a one-line change.
+     THE CONNECTED BRANCH ABOVE IS UNTOUCHED: anyone linked before this still shows as linked
+     and can still disconnect. */
   return `<div class="${cardClass}" id="card-telegram">${topRow}
-    ${expired ? '<div class="tg-expired-msg">Link expired — generate a new one below.</div>' : ''}
-    <p class="platform-body">Receive personalised alerts, arbitrage notifications, and market updates directly in Telegram.</p>
-    <button class="btn-connect" onclick="connectTelegram()">Connect Telegram</button>
+    <p class="platform-body">Telegram alerts are not available yet. We will turn this on when the bot can link to your account.</p>
+    <button class="btn-connect" disabled title="Telegram linking is not available yet">Telegram alerts coming soon</button>
   </div>`;
 }
 
