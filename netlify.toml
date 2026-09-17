@@ -33,3 +33,40 @@
 # a function's response headers come from the object the handler returns. Each handler sets
 # X-Robots-Tag itself — see netlify/functions/*.js — and that is not redundancy, it is the only
 # place it can be set.
+
+# ── THE LEGAL PAGES LIVE ON THE MAIN SITE ───────────────────────────────────────────────
+# public/privacy/index.html and public/terms/index.html were Stage B placeholders: 22 and 23
+# words, both saying "We're finalising our policies." The real Privacy Policy is at
+# ipredicta.co/privacy (3,410 words, last updated 8 September 2026) and the real Terms of Use
+# is a section of it, addressed as ipredicta.co/terms.
+#
+# A PLACEHOLDER IS WORSE THAN A REDIRECT HERE, not merely less useful. The App Store and Google
+# Play both take a privacy policy URL, and a signed-in member reading app.ipredicta.co/privacy
+# was being told the policy did not exist yet while a complete one was published one subdomain
+# away. These 301s mean there is one privacy policy and one set of terms, not two that can drift.
+#
+# The placeholder FILES are deleted rather than left in place, so nothing can serve them if a
+# rule is ever removed.
+[[redirects]]
+  from = "/privacy"
+  to = "https://ipredicta.co/privacy/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/privacy/*"
+  to = "https://ipredicta.co/privacy/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/terms"
+  to = "https://ipredicta.co/terms/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/terms/*"
+  to = "https://ipredicta.co/terms/"
+  status = 301
+  force = true
