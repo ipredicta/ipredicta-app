@@ -25,3 +25,18 @@ function noindex(handler) {
   };
 }
 module.exports = { noindex };
+
+/* WHY THIS LIVES IN netlify/lib AND NOT netlify/functions.
+ * Netlify deploys EVERY .js file at the top level of the functions directory as a function,
+ * including helpers that export no handler. Measured on the preview before this move: with a
+ * non-existent name as the control returning 404, /.netlify/functions/_robots and
+ * /.netlify/functions/_crypto both returned 502 — deployed, callable, and crashing on
+ * invocation. An underscore prefix is a naming convention and means nothing to the bundler.
+ *
+ * On the same day, the MAIN SITE's production deploy failed outright with "serverless functions
+ * failed to deploy: subscribe.test" for exactly this reason: a test file sitting at the top
+ * level of netlify/functions. A helper only wasted a slot and served a 502; a test file took the
+ * whole deploy down and blocked every change behind it for hours. Same mistake, two blast radii.
+ *
+ * A file under netlify/functions is a PUBLIC HTTP ENDPOINT. Anything that is not one belongs
+ * outside that directory. */

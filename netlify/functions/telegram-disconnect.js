@@ -1,5 +1,5 @@
 'use strict';
-const { noindex } = require('./_robots.js');
+const { noindex } = require('../lib/robots.js');
 const { createClient } = require('@supabase/supabase-js');
 
 const SB_URL = 'https://xcjoclataeywhneruqrg.supabase.co';
