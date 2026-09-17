@@ -1,6 +1,7 @@
 'use strict';
+const { noindex } = require('../lib/robots.js');
 const { createClient } = require('@supabase/supabase-js');
-const { encrypt } = require('./_crypto');
+const { encrypt } = require('../lib/crypto.js');
 
 const SB_URL = 'https://xcjoclataeywhneruqrg.supabase.co';
 
@@ -10,7 +11,7 @@ function makeServiceClient() {
   });
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -63,3 +64,6 @@ exports.handler = async (event) => {
     body: JSON.stringify({ ok: true })
   };
 };
+
+// Wrapped so EVERY return path carries X-Robots-Tag: noindex. See _robots.js.
+exports.handler = noindex(handler);

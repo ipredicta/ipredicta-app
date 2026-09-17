@@ -1,0 +1,9 @@
+# app.ipredicta.co is the signed-in members area. It has no public content, and every URL under
+# it is either a form, an authenticated view or an API endpoint.
+#
+# THIS FILE STOPS CRAWLING. It does NOT deindex a URL somebody links to — for that the response
+# must carry X-Robots-Tag: noindex, which netlify.toml sets for every static path and each
+# function sets on its own response. Both are needed: a crawler that is disallowed never reads
+# the header, so a URL Google already knows about would stay listed without one.
+User-agent: *
+Disallow: /
