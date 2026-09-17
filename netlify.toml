@@ -1,6 +1,35 @@
 [build]
-  publish = "."
+  # PUBLISH public/, NOT THE REPOSITORY ROOT. Until 17 September 2026 this was `publish = "."`,
+  # which served the whole repo: https://app.ipredicta.co/package.json returned 200, and so did
+  # every file under /netlify/functions/, as application/javascript. No secret VALUE was exposed
+  # (those are environment variables, and the bundled function is what executes, not the file on
+  # disk), and Netlify withholds dotfiles and node_modules, so .git, .env and the dependency tree
+  # were never readable. What leaked was reconnaissance: the auth flow, the table names, the
+  # Supabase project URL and which env vars exist.
+  #
+  # ANYTHING ADDED TO THE REPO ROOT FROM NOW ON IS NOT SERVED. Put files a browser must fetch in
+  # public/; everything else stays out of the web root by default, which is the right way round.
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
+
+# ── KEEPING THE APP OUT OF THE INDEX ────────────────────────────────────────────────────
+# Google was crawling app.ipredicta.co/?mode=signup and
+# app.ipredicta.co/.netlify/functions/telegram-disconnect (GSC, 17 September 2026). Nothing told
+# it not to: there was no robots.txt (it 404'd), no robots meta and no X-Robots-Tag.
+#
+# BOTH MECHANISMS ARE HERE BECAUSE THEY DO DIFFERENT JOBS. robots.txt Disallow stops CRAWLING
+# and does NOT deindex a URL somebody links to; X-Robots-Tag is what removes it from the index,
+# and it can only be read if the crawler is allowed to fetch the page. Disallow alone would
+# therefore leave an already-known URL listed with no snippet, which is worse than either.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# THIS BLOCK DOES NOT COVER THE FUNCTIONS. Netlify's [[headers]] apply to static assets only;
+# a function's response headers come from the object the handler returns. Each handler sets
+# X-Robots-Tag itself — see netlify/functions/*.js — and that is not redundancy, it is the only
+# place it can be set.
