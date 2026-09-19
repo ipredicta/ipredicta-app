@@ -27,9 +27,19 @@ their choice stored in the cookie and honoured on both origins, and we hold no r
 they made it. If they later made a subject access request, or the ICO asked, the decision
 would be invisible to us.
 
-The fix is an endpoint on this origin. See ROADMAP.md NOW; it needs
-`SUPABASE_SERVICE_ROLE_KEY` here and it needs migration 029 to have actually been applied,
-which was last recorded as awaiting an operator paste.
+**This is a gap on THIS origin only. The site's logging is working.** Migration 029 was
+applied on 14 August 2026 and `public.consent_records` has been collecting rows ever since:
+measured on 19 September 2026, **220 rows**, earliest `2026-08-15T09:21:55`, still arriving
+that evening. So the hole is exactly the shape described above and no wider, and nobody
+should read this item as "consent has never been recorded anywhere".
+
+That count was read with the **service** key. An anon SELECT on this table returns `200 []`
+rather than `401` and `Prefer: count=exact` does not separate the two, so any statement about
+what this table holds has to name the key that read it.
+
+The fix is an endpoint on this origin, and it has no prerequisite outside the code:
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already set on the `ipredicta-app` Netlify
+site for the Kalshi and Telegram functions (checked 19 September 2026). See ROADMAP.md NOW.
 
 ## 2. POLICY_VERSION is hand-copied across two repositories with nothing comparing them
 

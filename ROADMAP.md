@@ -23,12 +23,24 @@ second origin, and doing it for a function whose whole design assumes it is talk
 own pages. The right shape is `netlify/functions/consent-log.js` in **this** repo, writing to
 the same table with the same whitelist.
 
-Two prerequisites, both outside the code:
+**Nothing outside the code blocks this.** Checked on 19 September 2026 with
+`netlify env:list` against the `ipredicta-app` site: `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` are both **already set** there, because the Kalshi and Telegram
+functions need them. So this is a write-the-function job with no ops step in front of it,
+which makes it a good deal smaller than it first looked.
 
-- `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` set on this Netlify site.
-- Migration 029 actually applied. It was last recorded as written but awaiting an operator
-  paste; if the table does not exist, the site's own logging has been failing quietly too,
-  and that is worth checking before writing a second writer for it.
+**The table is already there and the site's logging works.** Migration 029 was applied on
+14 August 2026 and verified end to end the same day, so writing this endpoint is adding a
+second writer to a working table, not standing up a new one. Measured on 19 September 2026
+rather than read from the migration header: `consent_records` holds **220 rows**, earliest
+`2026-08-15T09:21:55`, and rows were still arriving that evening, including three within ten
+minutes of the cookie change going live. Split by version: 5 at `2026-08-14.1`, 215 at
+`2026-08-17.1`.
+
+**Queried with the SERVICE key, and that has to be said for the count to mean anything.**
+An anon SELECT on this table returns `200 []` rather than `401`, and `Prefer: count=exact`
+does not distinguish them, so "220 rows" is a claim about a key as much as about a table.
+Never state what `consent_records` contains without naming the key that read it.
 
 Copy the site's function rather than reinventing it, including the part where every failure
 path returns 204 and logs loudly. A member's privacy choice must not surface an error.
