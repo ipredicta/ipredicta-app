@@ -10,6 +10,14 @@
 <link rel="manifest" href="/site.webmanifest">
 <title>iPredicta — Members</title>
 <link rel="stylesheet" href="/assets/fonts.css">
+<!-- CONSENT AND THE ONLY GA4 LOADER. Not deferred and not async, deliberately: the
+     app's own script block below is inline and therefore runs at parse time, before
+     any deferred script would, so window.iPredictaConsent has to exist by the time
+     that block is parsed. The file itself does no DOM work until DOMContentLoaded.
+     It must stay ABOVE the inline block. Do not add a gtag snippet anywhere else in
+     this page: this file is what makes the privacy policy's consent claim true, and
+     a second loader would set analytics cookies before a member had agreed. -->
+<script src="/assets/consent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 <style>
@@ -942,6 +950,23 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
           <span class="account-info-value" id="settings-bot-status">—</span>
         </div>
       </div>
+
+      <!-- WITHDRAWAL HAS TO BE AS EASY AS CONSENT (UK GDPR Article 7(3)), and
+           without this row it is not: the banner is gone once answered, and the
+           site's own Cookie settings link is in a footer this page does not have.
+           The banner copy says "under Settings", so this row is what makes that
+           sentence true. -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="settings-section-title">Privacy</div>
+        <div class="account-info-row">
+          <span class="account-info-label">Cookies and analytics</span>
+          <button type="button" class="btn-outline-small" id="settings-cookie-btn">Cookie settings</button>
+        </div>
+        <div class="account-info-row">
+          <span class="account-info-label">Privacy policy</span>
+          <a class="account-info-value" href="https://ipredicta.co/privacy/" target="_blank" rel="noopener" style="color: var(--blue); font-weight: 600;">Read the policy</a>
+        </div>
+      </div>
     </div>
 
   </main><!-- /main-content -->
@@ -1261,6 +1286,36 @@ async function _executePendingAction(session) {
 // (already in HTML)
 
 // ─── NAV / VIEW ROUTING ──────────────────────────────────────────────────────
+
+// GA4 screen map. The members area is ONE URL with five screens, so GA4 is
+// configured with send_page_view:false in /assets/consent.js and every screen is
+// reported from here instead. Without this map every screen is "/" and the
+// reports say the whole product is one page.
+//
+// NOTHING MEMBER-SPECIFIC GOES IN EITHER COLUMN. These are literals, not values
+// read from the session, the DOM or the URL, and that is the whole defence: this
+// page renders the signed-in email on two screens and none of it can reach Google
+// through a path or a title that was never allowed to vary.
+const GA_VIEWS = {
+  dashboard: { path: '/app/home',     title: 'Members: Home' },
+  markets:   { path: '/app/markets',  title: 'Members: Markets' },
+  alerts:    { path: '/app/alerts',   title: 'Members: Alerts' },
+  accounts:  { path: '/app/accounts', title: 'Members: Accounts' },
+  settings:  { path: '/app/settings', title: 'Members: Settings' }
+};
+
+// One call site for the map, so an unmapped view is visible rather than silently
+// unreported. A new .view added without a GA_VIEWS entry warns in the console;
+// it does not throw, because a missing analytics row must never break navigation.
+function trackView(name) {
+  const v = GA_VIEWS[name];
+  if (!v) {
+    console.warn('trackView: no GA_VIEWS entry for view "' + name + '"; not reported');
+    return;
+  }
+  window.iPredictaConsent.pageView(v.path, v.title);
+}
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const el = document.getElementById('view-' + name);
@@ -1279,12 +1334,28 @@ function showView(name) {
   if (name === 'alerts')   loadAlerts();
   if (name === 'settings') loadSettings();
   if (name === 'accounts') loadAccounts();
+
+  // HERE RATHER THAN IN EACH HANDLER. Three inline onclick="showView(...)"
+  // buttons on the dashboard and the [data-view] listener below all funnel
+  // through this function, so one call covers every way a screen changes. Put a
+  // page_view in the click handlers instead and the dashboard's three shortcut
+  // buttons are the ones that get forgotten.
+  //
+  // Not the FIRST screen, though: showView() is never called on load, because
+  // the dashboard is active from markup. enterApp() sends that one.
+  trackView(name);
 }
 
 // Wire nav buttons
 document.querySelectorAll('[data-view]').forEach(btn => {
   btn.addEventListener('click', () => showView(btn.dataset.view));
 });
+
+// Settings > Privacy > Cookie settings. Wired here with the other static
+// controls rather than in loadSettings(), which runs on every visit to the
+// screen and would stack a listener each time.
+document.getElementById('settings-cookie-btn')
+  .addEventListener('click', () => window.iPredictaConsent.openSettings());
 
 // ─── SIDEBAR MOBILE ───────────────────────────────────────────────────────────
 const sidebar  = document.getElementById('sidebar');
@@ -1338,6 +1409,17 @@ function enterAuth() {
 async function enterApp(user) {
   document.getElementById('app-auth').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
+
+  // THE FIRST page_view OF THE SESSION, and it has to be here. showView() covers
+  // every screen CHANGE but is never called on load: #view-dashboard carries
+  // class="active" in the markup, so the app opens on the dashboard without
+  // routing through it. Reporting from here rather than calling
+  // showView('dashboard') keeps this to an analytics call and changes no
+  // behaviour; showView() would also re-run the class toggling and closeSidebar().
+  //
+  // The `user` argument is NOT passed on. Nothing about who this is goes to GA4.
+  trackView('dashboard');
+
   populateUserUI(user);
   // Load the dashboard first so the overlay reads as "finish this to unlock"
   // rather than "the app failed to load." The onboarding check runs in parallel.
