@@ -207,6 +207,31 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .auth-success .back-link {
   display: inline-block; margin-top: 20px; font-size: .83rem; color: var(--blue); font-weight: 600;
 }
+/* Marks for the two confirmation-landing panels. Drawn in CSS rather than set as
+   an emoji glyph, which is against the house rule and renders differently on
+   every platform. The tick is the same rotated-border trick as .auth-check. */
+.auth-mark { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 16px; position: relative; }
+.auth-mark-ok { background: rgba(0,184,122,.15); border: 2px solid var(--green); }
+.auth-mark-ok::after {
+  content: ''; position: absolute; left: 17px; top: 12px;
+  width: 11px; height: 21px; border: solid var(--green);
+  border-width: 0 3px 3px 0; transform: rotate(45deg);
+}
+.auth-mark-warn { background: rgba(232,54,74,.15); border: 2px solid var(--red); }
+.auth-mark-warn::before {
+  content: ''; position: absolute; left: 25px; top: 13px;
+  width: 3px; height: 19px; border-radius: 2px; background: var(--red);
+}
+.auth-mark-warn::after {
+  content: ''; position: absolute; left: 25px; top: 37px;
+  width: 3px; height: 3px; border-radius: 50%; background: var(--red);
+}
+.auth-success .btn-open-app {
+  display: flex; text-decoration: none; margin-top: 22px;
+}
+.auth-success .auth-hint {
+  font-size: .78rem; color: rgba(255,255,255,.35); margin-top: 14px;
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    APP SHELL
@@ -763,6 +788,30 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
       <p>We've sent a confirmation link to your email address. Click it to activate your account, then come back and sign in.</p>
       <button class="back-link" id="back-to-login">← Back to sign in</button>
     </div>
+
+    <!-- LANDING FROM A CONFIRMATION LINK. Shown instead of any sign-in form when
+         the visitor arrives from the link in a confirmation email. Most of those
+         visitors signed up in the iOS app, where the account is already
+         confirmed by the time this page loads and the only useful instruction is
+         to go back to the app. See FRAGMENT LANDING in the script below. -->
+    <div id="form-confirmed" class="hidden auth-success">
+      <div class="auth-mark auth-mark-ok"></div>
+      <h3>Email confirmed</h3>
+      <p>Your email is confirmed. Go back to the iPredicta app and sign in.</p>
+      <a class="btn-primary btn-open-app" href="ipredictaios://" id="open-app-confirmed">Open the iPredicta app</a>
+      <p class="auth-hint">That button opens iPredicta on the device where you installed it.</p>
+      <button class="back-link" id="confirmed-to-login">Sign in on the web instead</button>
+    </div>
+
+    <div id="form-confirm-error" class="hidden auth-success">
+      <div class="auth-mark auth-mark-warn"></div>
+      <h3>That link did not work</h3>
+      <p>This confirmation link has expired or has already been used.</p>
+      <p>Go back to the iPredicta app and sign in. If it tells you your email is not confirmed, sign up again with the same email address to request a new link.</p>
+      <a class="btn-primary btn-open-app" href="ipredictaios://" id="open-app-error">Open the iPredicta app</a>
+      <p class="auth-hint">That button opens iPredicta on the device where you installed it.</p>
+      <button class="back-link" id="confirm-error-to-login">Sign in on the web instead</button>
+    </div>
   </div>
   </div>
 </div>
@@ -1121,6 +1170,13 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 <script>
 'use strict';
 
+// ─── THE FRAGMENT, READ FIRST ─────────────────────────────────────────
+// THIS HAS TO RUN BEFORE createClient. supabase-js parses the URL fragment on
+// initialisation and then removes it, so anything that wants to know how the
+// visitor arrived must read it first. Resolved into a mode further down, under
+// FRAGMENT LANDING.
+const _landingHash = window.location.hash || '';
+
 // ─── SUPABASE INIT ────────────────────────────────────────────────────────────
 const { createClient } = window.supabase;
 const sb = createClient(
@@ -1197,6 +1253,47 @@ if (_dlParams.get('action')) {
   }));
 }
 if (_dlParams.get('mode') === 'signup') showAuthForm('signup');
+
+// ─── FRAGMENT LANDING ────────────────────────────────────────────
+// A confirmation email links to Supabase's verify endpoint, which confirms the
+// address on the server and then redirects HERE with the outcome in the
+// fragment: tokens and type=signup when it worked, error and error_code when the
+// link was stale or had already been used.
+//
+// Until 22 September 2026 nothing on this page read that fragment. A failed link
+// therefore showed a bare sign-in form with no explanation, and a successful one
+// signed an iOS member into the WEB members area without a word about the app
+// they had just come from. Both were reported from the phone. The diagnosis is
+// S22 in the ipredicta-ios TECH_DEBT.md.
+//
+// Note what is NOT here: nothing completes the confirmation. The link does that
+// itself, server side, before the browser is redirected. This page only tells
+// the visitor what happened and sends them back to the app.
+const _lhp = new URLSearchParams(_landingHash.replace(/^#/, ''));
+const _lhError  = !!(_lhp.get('error') || _lhp.get('error_code'));
+const _lhSignup = _lhp.get('type') === 'signup';
+
+// Written by this page's own signup just before it calls signUp. A member who
+// signed up HERE keeps the old behaviour and is taken into the members area;
+// only a visitor with no such marker is treated as arriving from the app. A web
+// signup confirmed in a different browser has no marker, so it lands on the
+// panel and takes the "Sign in on the web instead" link.
+let _signupOrigin = null;
+try { _signupOrigin = localStorage.getItem('ip_signup_origin'); } catch (_) {}
+if (_signupOrigin && (_lhSignup || _lhError)) {
+  try { localStorage.removeItem('ip_signup_origin'); } catch (_) {}
+}
+
+// 'confirmed' or 'error', else null for every ordinary visit. Cleared if the
+// visitor asks for the web sign-in form instead.
+let _landing = null;
+if (_lhError)                                   _landing = 'error';
+else if (_lhSignup && _signupOrigin !== 'web')  _landing = 'confirmed';
+
+function _showLanding() {
+  showAuthForm(_landing === 'confirmed' ? 'confirmed' : 'confirm-error');
+}
+if (_landing) _showLanding();
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function probColor(p) {
@@ -1387,6 +1484,17 @@ function _clearSharedCookie() {
   document.cookie = 'ipredicta_rt=; ' + flags;
 }
 sb.auth.onAuthStateChange((event, session) => {
+  // A confirmation link opened from the iOS app arrives with a usable session in
+  // the fragment, and supabase-js will have stored it by the time this fires.
+  // That visitor is being sent back to the app, so the session is dropped rather
+  // than kept: leaving one behind would also write the cookie shared across
+  // .ipredicta.co and sign them into a members area they never asked for.
+  // signOut() re-enters this handler with no session, which shows the panel.
+  if (_landing === 'confirmed' && session?.user) {
+    _clearSharedCookie();
+    sb.auth.signOut();
+    return;
+  }
   if (session?.user) {
     currentUser = session.user;
     _setSharedCookie(session);
@@ -1403,6 +1511,7 @@ function enterAuth() {
   hideOnboardingOverlay();
   document.getElementById('app-auth').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('hidden');
+  if (_landing) { _showLanding(); return; }
   showAuthForm(_dlParams.get('mode') === 'signup' ? 'signup' : 'login');
 }
 
@@ -1429,7 +1538,7 @@ async function enterApp(user) {
 }
 
 function showAuthForm(which) {
-  ['login','signup','confirm'].forEach(f => {
+  ['login','signup','confirm','confirmed','confirm-error'].forEach(f => {
     document.getElementById('form-' + f).classList.toggle('hidden', f !== which);
   });
 }
@@ -1521,6 +1630,10 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   try { if (pendingRaw) pendingData = { pending_action: JSON.parse(pendingRaw) }; } catch(_) {}
 
   const termsAcceptedAt = new Date().toISOString();
+  // Read by FRAGMENT LANDING when the confirmation link comes back, so a signup
+  // that started on the web is taken into the members area rather than being
+  // told to go back to the iOS app.
+  try { localStorage.setItem('ip_signup_origin', 'web'); } catch (_) {}
   const { error } = await sb.auth.signUp({
     email,
     password,
@@ -1556,6 +1669,14 @@ document.getElementById('signup-password').addEventListener('keydown', e => {
 document.getElementById('go-signup').addEventListener('click', () => showAuthForm('signup'));
 document.getElementById('go-login').addEventListener('click',  () => showAuthForm('login'));
 document.getElementById('back-to-login').addEventListener('click', () => showAuthForm('login'));
+// Off either confirmation panel. _landing is cleared first, or the next auth
+// event would route straight back to the panel the visitor just dismissed.
+['confirmed-to-login', 'confirm-error-to-login'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    _landing = null;
+    showAuthForm('login');
+  });
+});
 
 // ─── LOGOUT ───────────────────────────────────────────────────────────────────
 document.getElementById('btn-logout').addEventListener('click', async () => {
