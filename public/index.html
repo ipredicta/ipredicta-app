@@ -902,8 +902,8 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </div>
           <div class="stat-val" id="dash-alerts-count">—</div>
-          <div class="stat-label">Alerts saved</div>
-          <div class="stat-sub" id="dash-alerts-sub"><span class="dot amber"></span> Not sending yet</div>
+          <div class="stat-label">Email alerts</div>
+          <div class="stat-sub" id="dash-alerts-sub"><span class="dot"></span> Emailed when they move</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon green">
@@ -959,7 +959,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
     <div id="view-alerts" class="view">
       <div class="view-header">
         <h1 class="view-title">Market Alerts</h1>
-        <p class="view-sub">Alerts aren't sending yet. Markets you mark for alerts are listed here, and nothing will be sent until you have chosen to receive it.</p>
+        <p class="view-sub">We email you when a market you follow moves by the amount you chose. Set one from the bell on any Polymarket market on ipredicta.co. Every alert email has a link to stop it.</p>
       </div>
       <div id="alerts-content">
         <div class="loading-center"><div class="spinner"></div> Loading alerts…</div>
@@ -1367,7 +1367,7 @@ async function _executePendingAction(session) {
     catch(e) { console.warn('Could not clear pending_action from user metadata:', e); }
   }
 
-  toast(pending.action === 'save' ? 'Market saved ✓' : 'Saved for alerts ✓ Alerts aren\'t sending yet', 'success');
+  toast(pending.action === 'save' ? 'Market saved ✓' : 'Saved ✓ To get email alerts, use the bell on ipredicta.co', 'success');
 
   if (pending.return_to) {
     try {
@@ -1706,7 +1706,9 @@ async function loadDashboard() {
   const { count: ac } = await sb
     .from('market_alerts')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', uid);
+    .eq('user_id', uid)
+    .eq('active', true)
+    .not('consent_id', 'is', null);   // only alerts that can actually email (R28): consent recorded, still on
 
   alertsCount = ac || 0;
   document.getElementById('dash-alerts-count').textContent = alertsCount;
@@ -1820,7 +1822,7 @@ async function loadAlerts() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div class="empty-title">No alerts set up</div>
-        <div class="empty-sub">Alerts aren't sending yet.</div>
+        <div class="empty-sub">Use the bell on any Polymarket market on ipredicta.co to get an email when it moves.</div>
       </div>`;
     return;
   }
@@ -1833,7 +1835,11 @@ function renderAlertItem(a) {
   const chipClass = dir === 'above' ? 'chip-above' : dir === 'below' ? 'chip-below' : '';
   const chipLabel = dir === 'above' ? 'Above' : dir === 'below' ? 'Below' : dir || 'Alert';
   const t = a.alert_threshold ?? a.threshold;
-  const threshold = t !== undefined && t !== null ? `${t}%` : '';
+  // R28 (7 Oct 2026): thresholds are POINTS, and each alert says whether it will actually email
+  const threshold = t !== undefined && t !== null ? `${t} points` : '';
+  const status = !a.consent_id ? 'Not emailed: set it again from the bell on ipredicta.co'
+    : a.active === false ? 'Stopped'
+    : `Emails when it moves ${t ?? 5} points`;
 
   return `
     <div class="alert-item" id="alert-${a.id}">
@@ -1841,10 +1847,10 @@ function renderAlertItem(a) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       </div>
       <div class="alert-body">
-        <div class="alert-title">${a.market_title || a.title || 'Alert'}</div>
+        <div class="alert-title">${a.market_title || a.title || 'Alert'}${a.leg_title ? `: ${a.leg_title}` : ''}</div>
         <div class="alert-meta">
+          <span>${status}</span>
           ${chipClass ? `<span class="alert-chip ${chipClass}">${chipLabel}</span>` : ''}
-          ${threshold ? `<span>${threshold}</span>` : ''}
           <span>Set ${formatDate(a.created_at)}</span>
         </div>
       </div>
