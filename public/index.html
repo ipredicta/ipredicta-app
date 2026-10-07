@@ -902,8 +902,8 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </div>
           <div class="stat-val" id="dash-alerts-count">—</div>
-          <div class="stat-label">Active Alerts</div>
-          <div class="stat-sub" id="dash-alerts-sub"><span class="dot amber"></span> Monitoring</div>
+          <div class="stat-label">Alerts saved</div>
+          <div class="stat-sub" id="dash-alerts-sub"><span class="dot amber"></span> Not sending yet</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon green">
@@ -959,7 +959,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
     <div id="view-alerts" class="view">
       <div class="view-header">
         <h1 class="view-title">Market Alerts</h1>
-        <p class="view-sub">Get notified when markets hit your targets</p>
+        <p class="view-sub">Alerts aren't sending yet. Markets you mark for alerts are listed here, and nothing will be sent until you have chosen to receive it.</p>
       </div>
       <div id="alerts-content">
         <div class="loading-center"><div class="spinner"></div> Loading alerts…</div>
@@ -970,7 +970,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
     <div id="view-accounts" class="view">
       <div class="view-header">
         <h1 class="view-title" id="accounts-view-title">Connect your accounts</h1>
-        <p class="view-sub">Link your prediction market accounts so we can track your balances and send you smarter alerts.</p>
+        <p class="view-sub">Link your prediction market accounts so we can show your balances.</p>
       </div>
       <div id="accounts-content">
         <div class="loading-center"><div class="spinner"></div> Loading…</div>
@@ -1367,7 +1367,7 @@ async function _executePendingAction(session) {
     catch(e) { console.warn('Could not clear pending_action from user metadata:', e); }
   }
 
-  toast(pending.action === 'save' ? 'Market saved ✓' : 'Alert set ✓', 'success');
+  toast(pending.action === 'save' ? 'Market saved ✓' : 'Saved for alerts ✓ Alerts aren\'t sending yet', 'success');
 
   if (pending.return_to) {
     try {
@@ -1817,7 +1817,7 @@ async function loadAlerts() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div class="empty-title">No alerts set up</div>
-        <div class="empty-sub">Alerts can be created via the iPredicta Telegram bot.</div>
+        <div class="empty-sub">Alerts aren't sending yet.</div>
       </div>`;
     return;
   }
@@ -1829,7 +1829,8 @@ function renderAlertItem(a) {
   const dir = (a.direction || a.alert_type || '').toLowerCase();
   const chipClass = dir === 'above' ? 'chip-above' : dir === 'below' ? 'chip-below' : '';
   const chipLabel = dir === 'above' ? 'Above' : dir === 'below' ? 'Below' : dir || 'Alert';
-  const threshold = a.threshold !== undefined ? `${a.threshold}%` : '';
+  const t = a.alert_threshold ?? a.threshold;
+  const threshold = t !== undefined && t !== null ? `${t}%` : '';
 
   return `
     <div class="alert-item" id="alert-${a.id}">
@@ -2033,7 +2034,7 @@ function renderPolyCard(connected, wallet) {
   }
 
   return `<div class="platform-card" id="card-polymarket">${topRow}
-    <p class="platform-body">Connecting your account lets us show your live balance, track your positions, and send real-time alerts when markets you care about start moving.</p>
+    <p class="platform-body">Connecting your account lets us show your live balance and track your positions.</p>
     <button class="help-toggle" data-target="poly-help">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       How do I find this?
@@ -2090,7 +2091,7 @@ function renderKalshiCard(connected, maskedKey, isUS) {
   }
 
   return `<div class="platform-card" id="card-kalshi">${topRow}
-    <p class="platform-body">Connecting your account lets us show your live balance, track your positions, and send real-time alerts when markets you care about start moving.</p>
+    <p class="platform-body">Connecting your account lets us show your live balance and track your positions.</p>
     <button class="help-toggle" data-target="kalshi-help">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       How do I find this?
@@ -2140,7 +2141,7 @@ function renderTelegramCard(state, code, username, expired) {
       <div class="platform-logo tg">TG</div>
       <div class="platform-info">
         <div class="platform-name">Telegram</div>
-        <div class="platform-desc">Get personalised alerts and chat with our bot.</div>
+        <div class="platform-desc">Chat with our bot about prediction markets.</div>
       </div>
       ${pill}
     </div>`;
