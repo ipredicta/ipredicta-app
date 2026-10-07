@@ -1533,6 +1533,9 @@ async function enterApp(user) {
   // Load the dashboard first so the overlay reads as "finish this to unlock"
   // rather than "the app failed to load." The onboarding check runs in parallel.
   loadDashboard();
+  // "Manage your alerts" in every alert email lands here, via ipredicta.co/alerts/ (R28, 7 Oct 2026): the email's
+  // links are all ipredicta.co pages, so the site redirects to ?view=alerts. One allowed value, nothing else routed.
+  if (_dlParams.get('view') === 'alerts') showView('alerts');
   const needsOnboarding = await checkOnboarding(user);
   if (needsOnboarding) showOnboardingOverlay(user);
 }
