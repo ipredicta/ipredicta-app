@@ -1717,7 +1717,7 @@ async function loadDashboard() {
   // Bot status via user_preferences
   const { data: prefs } = await sb
     .from('user_preferences')
-    .select('telegram_chat_id, polymarket_wallet')
+    .select('telegram_chat_id')
     .eq('user_id', uid)
     .maybeSingle();
 
@@ -1730,15 +1730,6 @@ async function loadDashboard() {
   // Seed accounts prefs and tg state so sidebar label is correct on first load
   _accountPrefs = prefs || {};
   if (botConnected && _tgState === 'not-connected') _tgState = 'connected';
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      const kRes = await fetch('/.netlify/functions/kalshi-status', {
-        headers: { 'Authorization': 'Bearer ' + session.access_token }
-      });
-      if (kRes.ok) { const kData = await kRes.json(); _kalshiConnected = kData.connected; }
-    }
-  } catch(e) {}
   updateSidebarAccountsLabel();
 }
 
@@ -1920,11 +1911,10 @@ let _tgUsername = null;
 let _tgPollInt  = null;
 let _tgPollN    = 0;
 let _tgExpired       = false;
-let _kalshiConnected = false;
-let _kalshiMasked    = null;
 
 function updateSidebarAccountsLabel() {
-  const connected = !!(_accountPrefs?.polymarket_wallet || _kalshiConnected || _accountPrefs?.telegram_chat_id);
+  // Telegram is the only connection left: Kalshi API keys and Polymarket wallets are no longer collected (8 Oct 2026).
+  const connected = !!(_accountPrefs?.telegram_chat_id);
   const sideLabel = connected ? 'My Accounts' : 'Connect Platforms';
   const mobLabel  = connected ? 'Accounts'    : 'Connect';
   const viewTitle = connected ? 'My Accounts' : 'Connect your accounts';
@@ -1943,7 +1933,7 @@ async function loadAccounts() {
 
   const { data: prefs, error } = await sb
     .from('user_preferences')
-    .select('polymarket_wallet')
+    .select('telegram_chat_id')
     .eq('user_id', currentUser.id)
     .maybeSingle();
 
@@ -1954,19 +1944,10 @@ async function loadAccounts() {
 
   _accountPrefs = prefs || {};
 
-  // Fetch Kalshi status and Telegram state
+  // Fetch Telegram state
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
-      const kRes = await fetch('/.netlify/functions/kalshi-status', {
-        headers: { 'Authorization': 'Bearer ' + session.access_token }
-      });
-      if (kRes.ok) {
-        const kData = await kRes.json();
-        _kalshiConnected = kData.connected;
-        _kalshiMasked    = kData.masked;
-      }
-
       if (_tgState !== 'waiting') {
         const tgRes = await fetch('/.netlify/functions/telegram-link-status', {
           headers: { 'Authorization': 'Bearer ' + session.access_token }
@@ -1989,19 +1970,10 @@ async function loadAccounts() {
   updateSidebarAccountsLabel();
 }
 
-function maskWallet(w) {
-  if (!w || w.length <= 10) return w || '';
-  return w.slice(0, 6) + '••••••••' + w.slice(-4);
-}
-
 function renderAccountCards() {
-  const prefs = _accountPrefs || {};
-  const isUS  = APP_REGION === 'US';
   const container = document.getElementById('accounts-content');
   container.innerHTML = `
     <div class="platform-cards">
-      ${renderPolyCard(!!prefs.polymarket_wallet, prefs.polymarket_wallet)}
-      ${renderKalshiCard(_kalshiConnected, _kalshiMasked, isUS)}
       ${renderTelegramCard(_tgState, _tgCode, _tgUsername, _tgExpired)}
       ${renderComingSoonCard('predictit', 'PI', 'PredictIt',  'US political prediction market with small trade limits.')}
       ${renderComingSoonCard('robinhood', 'RH', 'Robinhood',  'Commission-free prediction markets alongside stocks.')}
@@ -2016,114 +1988,6 @@ function renderAccountCards() {
       btn.classList.toggle('open', target.classList.toggle('open'));
     });
   });
-}
-
-function renderPolyCard(connected, wallet) {
-  const topRow = `
-    <div class="platform-card-top">
-      <div class="platform-logo poly">PM</div>
-      <div class="platform-info">
-        <div class="platform-name">Polymarket</div>
-        <div class="platform-desc">The world's largest prediction market, open to users worldwide.</div>
-      </div>
-      <span class="platform-pill ${connected ? 'pill-connected' : 'pill-not-connected'}">${connected ? '✓ Connected' : 'Not connected'}</span>
-    </div>`;
-
-  if (connected) {
-    return `<div class="platform-card connected" id="card-polymarket">${topRow}
-      <div class="platform-credential">
-        <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        ${maskWallet(wallet)}
-      </div>
-      <button class="btn-disconnect" onclick="confirmDisconnect('polymarket','Polymarket')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        Disconnect
-      </button>
-    </div>`;
-  }
-
-  return `<div class="platform-card" id="card-polymarket">${topRow}
-    <p class="platform-body">Connecting your account lets us show your live balance and track your positions.</p>
-    <button class="help-toggle" data-target="poly-help">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      How do I find this?
-    </button>
-    <div id="poly-help" class="help-content">
-      <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px">How do I find my wallet address?</p>
-      <ol class="help-steps">
-        <li>Open polymarket.com and sign in.</li>
-        <li>Click your profile icon in the top-right corner.</li>
-        <li>Click "Deposit" or "Profile" — you'll see your wallet address starting with "0x".</li>
-        <li>Copy the full address (it should be 42 characters) and paste it below.</li>
-      </ol>
-    </div>
-    <div class="platform-input-group">
-      <label class="platform-input-label" for="input-poly-wallet">Your Polymarket wallet address</label>
-      <input class="form-input" type="text" id="input-poly-wallet" placeholder="0x…">
-      <div class="platform-input-error" id="error-poly-wallet">That doesn't look like a valid wallet address. It should start with 0x and be 42 characters long.</div>
-    </div>
-    <button class="btn-connect" onclick="connectPlatform('polymarket')">Connect Polymarket</button>
-    <p class="platform-security-note">This is just your public wallet address — think of it like a bank account number. It's safe to share, and we can't access your funds with it.</p>
-  </div>`;
-}
-
-function renderKalshiCard(connected, maskedKey, isUS) {
-  const topRow = `
-    <div class="platform-card-top">
-      <div class="platform-logo kalshi" ${!isUS ? 'style="opacity:.45"' : ''}>K</div>
-      <div class="platform-info">
-        <div class="platform-name" ${!isUS ? 'style="color:var(--text-mid)"' : ''}>Kalshi</div>
-        <div class="platform-desc">US-regulated prediction market operating in dollars, no crypto needed.</div>
-      </div>
-      <span class="platform-pill ${connected ? 'pill-connected' : isUS ? 'pill-not-connected' : 'pill-restricted'}">
-        ${connected ? '✓ Connected' : isUS ? 'Not connected' : 'Not available in your region'}
-      </span>
-    </div>`;
-
-  if (!isUS) {
-    return `<div class="platform-card" id="card-kalshi">${topRow}
-      <p class="platform-body">Kalshi is currently US-only. You'll be able to connect when you're in a supported region.</p>
-    </div>`;
-  }
-
-  if (connected) {
-    return `<div class="platform-card connected" id="card-kalshi">${topRow}
-      <div class="platform-credential">
-        <div class="credential-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        ${maskedKey || ''}
-      </div>
-      <button class="btn-disconnect" onclick="confirmDisconnect('kalshi','Kalshi')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        Disconnect
-      </button>
-    </div>`;
-  }
-
-  return `<div class="platform-card" id="card-kalshi">${topRow}
-    <p class="platform-body">Connecting your account lets us show your live balance and track your positions.</p>
-    <button class="help-toggle" data-target="kalshi-help">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      How do I find this?
-    </button>
-    <div id="kalshi-help" class="help-content">
-      <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px">How do I get a Kalshi API key?</p>
-      <ol class="help-steps">
-        <li>Log in at kalshi.com.</li>
-        <li>Click your profile icon in the top-right corner.</li>
-        <li>Go to Settings → API Keys.</li>
-        <li>Click "Create new key" and give it a name like "iPredicta".</li>
-        <li>Copy the key shown and paste it below.</li>
-      </ol>
-      <div class="help-warning">Important: Kalshi only shows your API key once. Save a copy somewhere safe in case you need it again.</div>
-    </div>
-    <div class="platform-input-group">
-      <label class="platform-input-label" for="input-kalshi-key">Your Kalshi API key</label>
-      <input class="form-input" type="password" id="input-kalshi-key" placeholder="Paste your API key here">
-      <div class="platform-input-error" id="error-kalshi-key">Please paste your Kalshi API key (at least 10 characters).</div>
-    </div>
-    <button class="btn-connect" onclick="connectPlatform('kalshi')">Connect Kalshi</button>
-    <p class="platform-security-note">We use this key to read your balance and positions only. It can't be used to trade or move your money.</p>
-  </div>`;
 }
 
 function renderComingSoonCard(logoClass, logoText, name, desc) {
@@ -2273,68 +2137,6 @@ function cancelTelegramLink() {
   refreshTelegramCard();
 }
 
-async function connectPlatform(platform) {
-  if (!currentUser) return;
-  let value;
-
-  if (platform === 'polymarket') {
-    const input = document.getElementById('input-poly-wallet');
-    const err   = document.getElementById('error-poly-wallet');
-    value = (input?.value || '').trim();
-    err.style.display = 'none';
-    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) { err.style.display = 'block'; return; }
-  } else {
-    const input = document.getElementById('input-kalshi-key');
-    const err   = document.getElementById('error-kalshi-key');
-    value = (input?.value || '').trim();
-    err.style.display = 'none';
-    if (!value || value.length < 10) { err.style.display = 'block'; return; }
-  }
-
-  const card = document.getElementById('card-' + platform);
-  const btn  = card?.querySelector('.btn-connect');
-  const label = platform === 'polymarket' ? 'Polymarket' : 'Kalshi';
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Connecting…'; }
-
-  if (platform === 'polymarket') {
-    const { error } = await sb.from('user_preferences').upsert(
-      { user_id: currentUser.id, polymarket_wallet: value, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
-    if (error) {
-      toast('Connection failed: ' + error.message, 'error');
-      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
-      return;
-    }
-    _accountPrefs = _accountPrefs || {};
-    _accountPrefs.polymarket_wallet = value;
-  } else {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      toast('Not authenticated', 'error');
-      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
-      return;
-    }
-    const res = await fetch('/.netlify/functions/kalshi-connect', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: value })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast('Connection failed: ' + (err.error || res.statusText), 'error');
-      if (btn) { btn.disabled = false; btn.textContent = 'Connect ' + label; }
-      return;
-    }
-    _kalshiConnected = true;
-    _kalshiMasked    = '••••••••' + value.slice(-4);
-  }
-
-  toast(label + ' connected', 'success');
-  renderAccountCards();
-  updateSidebarAccountsLabel();
-}
-
 let _pendingDisconnect = null;
 function confirmDisconnect(platform, name) {
   _pendingDisconnect = platform;
@@ -2380,29 +2182,6 @@ async function executeDisconnect(platform, name) {
     return;
   }
 
-  if (platform === 'polymarket') {
-    const { error } = await sb.from('user_preferences').upsert(
-      { user_id: currentUser.id, polymarket_wallet: null, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
-    if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
-    _accountPrefs = _accountPrefs || {};
-    delete _accountPrefs.polymarket_wallet;
-  } else {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { toast('Not authenticated', 'error'); return; }
-    const res = await fetch('/.netlify/functions/kalshi-disconnect', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + session.access_token }
-    });
-    if (!res.ok) { toast('Failed to disconnect Kalshi', 'error'); return; }
-    _kalshiConnected = false;
-    _kalshiMasked    = null;
-  }
-
-  toast(name + ' disconnected', 'info');
-  renderAccountCards();
-  updateSidebarAccountsLabel();
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
