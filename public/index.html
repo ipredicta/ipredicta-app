@@ -1490,9 +1490,13 @@ sb.auth.onAuthStateChange((event, session) => {
   // than kept: leaving one behind would also write the cookie shared across
   // .ipredicta.co and sign them into a members area they never asked for.
   // signOut() re-enters this handler with no session, which shows the panel.
+  // scope 'local' drops only this browser's copy. The default, 'global', ends every session
+  // the account has, the app's included: if this page's sign-out lands after the app has
+  // signed in (a slow phone, the browser sent to the background mid-load), it signed the
+  // app out. Seen on the app's 1.1.0 RC2 check, 8 Oct 2026.
   if (_landing === 'confirmed' && session?.user) {
     _clearSharedCookie();
-    sb.auth.signOut();
+    sb.auth.signOut({ scope: 'local' });
     return;
   }
   if (session?.user) {
