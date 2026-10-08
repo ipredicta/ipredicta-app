@@ -42,6 +42,20 @@ button:disabled { background:#9db8e8; cursor:not-allowed; }
 .site-footer { border-top:1px solid var(--border); padding:22px 24px; text-align:center; font-size:.8rem; color:var(--text-light); }
 [hidden] { display:none !important; }
 @media (max-width:600px){ .content-card{ padding:32px 24px; } h1.page-title{ font-size:1.4rem; } }
+
+/* THE SITE'S LOOK (8 Oct 2026), as the members area: the site's blue header bar with the mark in white,
+   its page, card and ink colours, Inter for text and Inter Tight for headings. Styling only. */
+:root { --bg:#F4F6FB; --surface:#FFFFFF; --navy:#0d1b3e; --text:#0d1b3e; --text-mid:#4B5878; --text-light:#8590A8;
+  --border:#DDE3EE; --blue:#0247FE; --radius:10px; }
+html, body, input, button { font-family: Inter, system-ui, sans-serif; }
+h1, button { font-family: 'Inter Tight', Inter, system-ui, sans-serif; }
+h1 { letter-spacing: -.01em; }
+.site-header { background:#0247FE; border-bottom:0; }
+.site-header img { filter: brightness(0) invert(1); }
+.content-card { border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 20px rgba(13,27,62,.08); }
+input { border:1px solid var(--border); }
+input:focus { box-shadow:0 0 0 3px rgba(2,71,254,.22); }
+button:hover:not(:disabled) { background:#205DFE; }
 </style>
 </head>
 <body>

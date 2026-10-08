@@ -714,6 +714,118 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   .onb-card { padding: 28px 22px; }
   .onb-header h2 { font-size: 1.3rem; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   THE SITE'S LOOK (8 Oct 2026). The members area matched the old dark design while ipredicta.co
+   and the 1.1.0 app moved to the light one (design 7). This layer restyles it to match, and changes
+   NOTHING about how it works: no element ids, data attributes, onclick handlers or script logic are
+   touched, and everything above still applies where this does not override it.
+   Values are the site's, read from ipredicta-site assets/chrome.css and assets/board.css (the 1.1.0
+   app's constants/theme.ts carries the same): the header bar Blue RYB #0247FE, page #F4F6FB, white
+   cards, hairlines #DDE3EE, ink #0d1b3e / #4B5878 / #8590A8, Kalshi #4994CA (text #276B9B),
+   Polymarket #A46BFF, up #1DB07C, down #F0554D. Type: Inter for text, Inter Tight for headings and
+   figures, as the site and the app; Syne and DM Sans are no longer used here.
+════════════════════════════════════════════════════════════════════════════ */
+:root {
+  --bg: #F4F6FB; --surface: #FFFFFF; --surface-2: #EEF2F9; --surface-3: #E9EDF4;
+  --navy: #0d1b3e; --blue: #0247FE; --blue-light: #2F6BFF; --blue-pale: rgba(2,71,254,.08);
+  --blue-glow: rgba(2,71,254,.22); --green: #1DB07C; --red: #F0554D;
+  --text: #0d1b3e; --text-mid: #4B5878; --text-light: #8590A8;
+  --border: #DDE3EE; --border-2: #C9D2E2;
+  --radius: 10px; --radius-sm: 8px;
+  --bar: #0247FE; --bar-2: #205DFE;
+  --shadow: 0 1px 2px rgba(13,27,62,.05); --shadow-lg: 0 6px 20px rgba(13,27,62,.08);
+}
+html, body, button, input, select, textarea { font-family: Inter, system-ui, sans-serif; }
+h1, h2, h3, h4, .view-title, .auth-heading, .stat-val, .market-prob, .empty-title, .platform-name, .platform-logo, .user-avatar {
+  font-family: 'Inter Tight', Inter, system-ui, sans-serif; letter-spacing: -.01em;
+}
+/* the mark in white on the blue bar, the site header's own treatment (chrome.css .ch-logo img) */
+.sidebar-logo img, .mobile-header img, .auth-logo img { filter: brightness(0) invert(1); }
+
+/* ── SIGN-IN: light page, white card under a blue header band ── */
+#app-auth { background: var(--bg); }
+#app-auth::before { display: none; }
+.auth-back-link { color: var(--text-mid); }
+.auth-back-link:hover { color: var(--blue); }
+.auth-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-lg); padding: 0 36px 36px; overflow: hidden;
+}
+.auth-logo { background: var(--bar); margin: 0 -36px 28px; padding: 22px 24px 16px; }
+.auth-logo img { max-width: 170px !important; }
+.auth-logo-sub { color: rgba(255,255,255,.85); }
+.auth-heading { color: var(--navy); font-weight: 700; font-size: 1.45rem; }
+.auth-sub { color: var(--text-mid); }
+.form-label { color: var(--text-mid); }
+.form-input { border: 1px solid var(--border); }
+.form-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.btn-primary:hover:not(:disabled) { background: var(--bar-2); box-shadow: none; transform: none; }
+.auth-toggle { color: var(--text-mid); }
+.auth-toggle button:hover { color: var(--bar-2); }
+.auth-check { color: var(--text-mid); }
+.auth-check input[type="checkbox"] { border-color: var(--border-2); background: var(--surface); }
+.auth-check input[type="checkbox"]:hover { border-color: var(--blue); }
+.auth-check a { color: var(--blue); }
+.auth-check a:hover { color: var(--bar-2); }
+.auth-success h3 { color: var(--navy); }
+.auth-success p, .auth-success .auth-hint { color: var(--text-mid); }
+
+/* ── SIDEBAR: white, the logo on a blue band, the active item in the bar's blue ── */
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); }
+.sidebar-logo { background: var(--bar); border-bottom: 0; padding: 18px 20px 14px; }
+.logo-badge { color: #fff; background: rgba(255,255,255,.18); }
+.sidebar-back-link { color: var(--text-mid); padding-top: 14px; }
+.sidebar-back-link:hover { color: var(--blue); }
+.nav-section-label { color: var(--text-light); }
+.nav-item { color: var(--text-mid); }
+.nav-item svg { opacity: .8; }
+.nav-item:hover { color: var(--navy); background: var(--surface-2); }
+.nav-item.active { color: var(--blue); background: var(--blue-pale); font-weight: 600; }
+.nav-badge { background: var(--blue); }
+.sidebar-footer { border-top: 1px solid var(--border); }
+.user-avatar { background: var(--blue-pale); border-color: rgba(2,71,254,.25); color: var(--blue); font-weight: 700; }
+.user-email { color: var(--text-mid); }
+.btn-logout { border: 1px solid var(--border); color: var(--text-mid); }
+.btn-logout:hover { border-color: var(--red); color: var(--red); background: rgba(240,85,77,.08); }
+
+/* ── PHONE: the site's blue header bar; a white bottom bar ── */
+.mobile-header { background: var(--bar); border-bottom: 0; }
+.mobile-back-link { color: rgba(255,255,255,.85); }
+.mobile-back-link:hover { color: #fff; }
+.ham-line { background: #fff; }
+.sidebar-overlay { background: rgba(13,27,62,.35); }
+.mobile-nav { background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -2px 10px rgba(13,27,62,.05); }
+.mobile-nav-item { color: var(--text-light); }
+.mobile-nav-item.active { color: var(--blue); }
+.mobile-nav-item.active svg { filter: none; }
+
+/* ── CONTENT: the site's card treatment (white, hairline, 10px, no hover lift) ── */
+.view-title { font-weight: 700; color: var(--navy); }
+.view-sub { color: var(--text-mid); }
+.card, .stat-card, .market-card, .alert-item, .platform-card {
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.stat-card::before { display: none; }
+.stat-card:hover, .market-card:hover, .alert-item:hover { transform: none; border-color: var(--border-2); box-shadow: var(--shadow-lg); }
+.stat-icon { background: var(--blue-pale); }
+.stat-val { font-weight: 700; letter-spacing: -.02em; }
+.stat-label { color: var(--text-mid); }
+.market-prob { font-weight: 700; color: #14328F; }
+.market-title { color: var(--navy); }
+.prob-bar-bg { background: var(--surface-2); }
+.market-link:hover { color: var(--bar-2); }
+/* venue chips in the site's venue colours, the text darkened for contrast as the site's pills */
+.source-kalshi { background: rgba(73,148,202,.12); color: #276B9B; border: 1px solid rgba(73,148,202,.28); }
+.source-poly   { background: rgba(164,107,255,.12); color: #6D3FC8; border: 1px solid rgba(164,107,255,.28); }
+.platform-logo.kalshi { background: rgba(73,148,202,.12); color: #276B9B; border-color: rgba(73,148,202,.28); }
+.platform-logo.poly   { background: rgba(164,107,255,.12); color: #6D3FC8; border-color: rgba(164,107,255,.28); }
+.btn-outline-small { border-color: var(--border); }
+.btn-outline-small:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+.btn-save:hover:not(:disabled) { background: var(--bar-2); box-shadow: none; }
+.btn-delete:hover { border-color: var(--red); color: var(--red); background: rgba(240,85,77,.08); }
+.help-toggle:hover { color: var(--bar-2); }
+.onb-backdrop { background: rgba(13,27,62,.45); }
 </style>
 </head>
 <body>
