@@ -286,8 +286,22 @@
   // were actually on when they consented is never reported at all.
   var pendingView = null;
 
+  // GA4 LOADS ON THE TWO PRODUCTION HOSTS AND NOWHERE ELSE (15 Oct 2026). A deploy
+  // preview or draft URL serves this same file, so every test visit there was a
+  // real-looking session in the property. app.ipredicta.co and ipredicta.co are
+  // the pair GA4 cross-domain measurement joins, switched on the same day; the
+  // site's consent.js carries the same list. Exact names, not a suffix: a new
+  // host should have to be added here on purpose. Returning before
+  // analyticsLoaded is set leaves window.gtag undefined, which sendPageView and
+  // every event call already treat as "no analytics".
+  var GA4_HOSTS = ['app.ipredicta.co', 'ipredicta.co'];
+
   function loadAnalytics() {
     if (analyticsLoaded) return;
+    if (GA4_HOSTS.indexOf(window.location.hostname) === -1) {
+      if (window.console) console.info('consent: GA4 not loaded on ' + window.location.hostname + ' (production hosts only)');
+      return;
+    }
     analyticsLoaded = true;
     var s = document.createElement('script');
     s.async = true;
