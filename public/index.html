@@ -898,6 +898,20 @@ h1, h2, h3, h4, .view-title, .auth-heading, .stat-val, .market-prob, .empty-titl
       <p class="auth-hint">That button opens iPredicta on the device where you installed it.</p>
       <button class="back-link" id="confirm-error-to-login">Sign in on the web instead</button>
     </div>
+
+    <!-- LANDING FROM AN EXPIRED APP SIGN-IN (16 Oct 2026). The Android app signs in with Apple in the browser,
+         and Supabase keeps that sign-in's state for about five minutes. Past that its callback answers
+         "OAuth state has expired" and, no longer knowing the app's return address, sends the browser here.
+         The button returns to the app, which ends its waiting sign-in and says it timed out. -->
+    <div id="form-signin-timeout" class="hidden auth-success">
+      <div class="auth-mark auth-mark-warn"></div>
+      <h3>Sign-in timed out</h3>
+      <p>Signing in took longer than the few minutes allowed, so nothing was changed.</p>
+      <p>Go back to the iPredicta app and try again.</p>
+      <a class="btn-primary btn-open-app" href="ipredictaios://auth-callback?error=sign_in_timed_out" id="open-app-timeout">Back to the iPredicta app</a>
+      <p class="auth-hint">That button opens iPredicta on the device where you installed it.</p>
+      <button class="back-link" id="signin-timeout-to-login">Sign in on the web instead</button>
+    </div>
   </div>
   </div>
 </div>
@@ -1299,12 +1313,19 @@ if (_signupOrigin && (_lhSignup || _lhError)) {
 
 // 'confirmed' or 'error', else null for every ordinary visit. Cleared if the
 // visitor asks for the web sign-in form instead.
+// An expired OAuth sign-in (Supabase: error_code bad_oauth_state, "OAuth state has expired") may arrive in
+// the query or the fragment. It is not a confirmation link, so it gets its own panel.
+const _lq = new URLSearchParams(window.location.search);
+const _oauthExpired = [_lhp, _lq].some((q) => q.get('error_code') === 'bad_oauth_state'
+  || /oauth state/i.test(q.get('error_description') || ''));
+
 let _landing = null;
-if (_lhError)                                   _landing = 'error';
+if (_oauthExpired)                              _landing = 'signin-timeout';
+else if (_lhError)                              _landing = 'error';
 else if (_lhSignup && _signupOrigin !== 'web')  _landing = 'confirmed';
 
 function _showLanding() {
-  showAuthForm(_landing === 'confirmed' ? 'confirmed' : 'confirm-error');
+  showAuthForm(_landing === 'confirmed' ? 'confirmed' : _landing === 'signin-timeout' ? 'signin-timeout' : 'confirm-error');
 }
 if (_landing) _showLanding();
 
@@ -1558,7 +1579,7 @@ async function enterApp(user) {
 }
 
 function showAuthForm(which) {
-  ['login','signup','confirm','confirmed','confirm-error'].forEach(f => {
+  ['login','signup','confirm','confirmed','confirm-error','signin-timeout'].forEach(f => {
     document.getElementById('form-' + f).classList.toggle('hidden', f !== which);
   });
 }
@@ -1691,7 +1712,7 @@ document.getElementById('go-login').addEventListener('click',  () => showAuthFor
 document.getElementById('back-to-login').addEventListener('click', () => showAuthForm('login'));
 // Off either confirmation panel. _landing is cleared first, or the next auth
 // event would route straight back to the panel the visitor just dismissed.
-['confirmed-to-login', 'confirm-error-to-login'].forEach(id => {
+['confirmed-to-login', 'confirm-error-to-login', 'signin-timeout-to-login'].forEach(id => {
   document.getElementById(id).addEventListener('click', () => {
     _landing = null;
     showAuthForm('login');
