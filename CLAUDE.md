@@ -53,3 +53,18 @@ that is the right way round.
 page would set analytics cookies before a member had agreed and would silently falsify the
 privacy policy. It is also loaded **without `defer`** and must stay above the inline script
 block in `index.html`: that block runs at parse time and calls `window.iPredictaConsent`.
+
+## A migration for the app's tables goes in pr-agent, and every new table carries its grants
+
+Supabase, final notice: from 30 October 2026 a new table in the `public` schema is not reachable by the API roles until a
+migration grants it to them; existing tables are unaffected. This repo has no migrations of its own: tables the app uses
+are created by numbered migrations in **ipredicta-pr-agent `migrations/`**. Start from **`migrations/templates/`** there
+(the migration, block 1, and a block 3 that checks the grants) and follow the checklist in its `migrations/README.md`:
+
+- `grant select, insert, update, delete on table public.<t> to service_role;` always;
+- `revoke all on table public.<t> from anon, authenticated;` unless the app truly needs one of them;
+- where the app does need `authenticated` (a member reading their own rows), grant only what it needs, add the policy
+  that limits it (RLS as today), and say why: `-- GRANTS: table=<t> role=authenticated — <the feature>`.
+
+pr-agent's `ops/assert-migration-assertions.mjs` refuses a migration from 074 that creates a public table without them.
+pr-agent TECH_DEBT #583.
