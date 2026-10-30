@@ -12,11 +12,12 @@ function makeServiceClient() {
 }
 
 // crypto.randomInt, not Math.random (30 Oct 2026): the code is what links a Telegram chat to a member, so it must not be
-// predictable. Same IP-XXXX shape the bot parses; the bot also limits wrong tries per chat (ipredicta-telegram).
+// predictable. IP- plus 6 (about 2.2 billion codes; the bot accepts it since ipredicta-telegram f30e0d8) and the bot
+// limits each Telegram user to 5 wrong tries an hour.
 function genCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let s = 'IP-';
-  for (let i = 0; i < 4; i++) s += chars[crypto.randomInt(chars.length)];
+  for (let i = 0; i < 6; i++) s += chars[crypto.randomInt(chars.length)];
   return s;
 }
 
