@@ -210,6 +210,27 @@ test('Kalshi reads: three 401/403s mean Reconnect; a 5xx never counts; nothing i
   assert.equal(db2.rows.venue_secrets.length + db2.rows.venue_links.length, 0);
 });
 
+// pr-agent ops/purge-relink-secrets.mjs deletes a key 14 days after its link went needs_relink, counting from
+// last_read_at and only matching a secret created no later than that (30 Oct 2026). So a re-link must put the row back
+// to ok and write a fresh secret, or a re-linked key would be deleted.
+test('Kalshi re-link after needs_relink: status ok, fail_count 0, and a fresh secret, so the 14-day job never deletes it', async () => {
+  const db = fakeDb();
+  let t = WED_NOON.getTime();
+  await call(kalshiLink(deps(db, fakeNet(), new Date(t))), { method: 'POST', body: kalshiBody(), country: 'US' });
+  const read = (net) => call(kalshiPortfolio(deps(db, net, new Date((t += 31_000)))), { country: 'US' });
+  for (let i = 0; i < 3; i++) await read(fakeNet({ kalshiStatus: 401 }));
+  const refused = db.rows.venue_links[0];
+  assert.equal(refused.status, 'needs_relink');
+  const refusedAt = refused.last_read_at;
+  assert.equal(refusedAt, new Date(t).toISOString(), 'last_read_at is the time of the refusal that made it needs_relink');
+
+  const relinkAt = new Date((t += 20 * 86_400_000));
+  assert.equal((await call(kalshiLink(deps(db, fakeNet(), relinkAt)), { method: 'POST', body: kalshiBody(), country: 'US' })).status, 200);
+  const l = db.rows.venue_links[0];
+  assert.deepEqual([l.status, l.fail_count, l.last_read_at], ['ok', 0, relinkAt.toISOString()]);
+  assert.ok(db.rows.venue_secrets[0].created_at > refusedAt, 'the new secret is newer than the refusal, so the job\'s created_at guard skips it');
+});
+
 test('Kalshi link with no valid encryption key: refused before Kalshi is contacted, with a clear log line', async () => {
   const db = fakeDb();
   const net = fakeNet();
