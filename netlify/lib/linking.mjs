@@ -244,6 +244,9 @@ function encKeys(env = process.env) {
   return out;
 }
 
+/** True when at least one valid versioned key is configured. Never reveals a value. */
+export const encryptionReady = (env = process.env) => Object.keys(encKeys(env)).length > 0;
+
 export function encrypt(plaintext, env = process.env) {
   const keys = encKeys(env);
   const versions = Object.keys(keys).map(Number);

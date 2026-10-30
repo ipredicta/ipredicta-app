@@ -8,7 +8,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import {
-  ADDRESS, KEY_ID, RELINK_AFTER, SB_URL, countsAsRefusal, decrypt, edgeGeo, encrypt, inKalshiMaintenance, json,
+  ADDRESS, KEY_ID, RELINK_AFTER, SB_URL, countsAsRefusal, decrypt, edgeGeo, encrypt, encryptionReady, inKalshiMaintenance, json,
   kalshiAllowed, kalshiGet, keyHint, loadPrivateKey, maskAddress, memberFrom, polymarketAllowed, polymarketPositions,
   readRestrictions, scopeVerdict, trimPortfolio,
 } from './linking.mjs';
@@ -120,6 +120,11 @@ export const KALSHI_CONSENT_VERSION = 'kalshi-readonly-2026-10-30';
 export function kalshiLink(deps) {
   return wrap('POST', deps, async ({ req, sb, user, geo }) => {
     if (!kalshiAllowed(geo)) return json(403, { error: NOT_HERE.kalshi });
+    // Before anything is sent to Kalshi: without a valid key there is nowhere safe to put theirs (session 4, 30 Oct).
+    if (!encryptionReady(deps.env)) {
+      console.error('kalshi-link: no valid KALSHI_LINK_ENC_KEY_V<n> configured (64 hex characters); refusing before contacting Kalshi');
+      return json(503, { error: 'Kalshi linking is not available right now. Try again later.' });
+    }
     const b = await readBody(req);
     if (b.consent !== KALSHI_CONSENT_VERSION) return json(400, { error: 'Please read and accept what we store before linking.' });
     const keyId = typeof b.keyId === 'string' ? b.keyId.trim() : '';

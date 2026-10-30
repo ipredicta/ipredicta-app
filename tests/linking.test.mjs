@@ -210,6 +210,25 @@ test('Kalshi reads: three 401/403s mean Reconnect; a 5xx never counts; nothing i
   assert.equal(db2.rows.venue_secrets.length + db2.rows.venue_links.length, 0);
 });
 
+test('Kalshi link with no valid encryption key: refused before Kalshi is contacted, with a clear log line', async () => {
+  const db = fakeDb();
+  const net = fakeNet();
+  const logs = [];
+  const orig = console.error;
+  console.error = (m) => logs.push(String(m));
+  try {
+    for (const env of [{}, { KALSHI_LINK_ENC_KEY_V1: 'short' }]) {
+      const r = await call(kalshiLink({ ...deps(db, net), env }), { method: 'POST', body: kalshiBody(), country: 'US' });
+      assert.equal(r.status, 503);
+    }
+  } finally {
+    console.error = orig;
+  }
+  assert.equal(net.calls.filter((u) => u.includes('kalshi.com')).length, 0);
+  assert.equal(db.rows.venue_secrets.length, 0);
+  assert.ok(logs.every((l) => l.includes('KALSHI_LINK_ENC_KEY_V') && !/[0-9a-f]{64}/.test(l)));
+});
+
 test('encryption: versioned, tamper-evident, and rotatable', () => {
   const c1 = encrypt('secret', { KALSHI_LINK_ENC_KEY_V1: K1 });
   assert.match(c1, /^v1:/);
