@@ -521,6 +521,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .platform-logo.predictit{ background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .platform-logo.robinhood{ background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .platform-logo.cryptocom{ background: var(--blue-pale); color: var(--blue); border: 1px solid rgba(41,121,232,.2); }
+.platform-logo.polymarket{ background: var(--blue-pale); color: var(--blue); border: 1px solid rgba(41,121,232,.2); }
 .platform-info { flex: 1; min-width: 0; }
 .platform-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
 .platform-desc { font-size: .8rem; color: var(--text-light); line-height: 1.4; }
@@ -579,6 +580,17 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 }
 .platform-input-error { font-size: .75rem; color: var(--red); margin-top: 5px; display: none; }
 .platform-security-note { font-size: .75rem; color: var(--text-light); line-height: 1.55; margin-top: 10px; }
+/* Venue account linking (30 Oct 2026). */
+.platform-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; font-size: .875rem; color: var(--navy); background: #fff; }
+textarea.platform-input { min-height: 120px; font-family: ui-monospace, Menlo, monospace; font-size: .75rem; resize: vertical; }
+.consent-list { margin: 0 0 12px 18px; padding: 0; font-size: .82rem; color: var(--text-mid); line-height: 1.55; }
+.consent-list li { margin-bottom: 6px; }
+.consent-check { display: flex; gap: 10px; align-items: flex-start; font-size: .85rem; color: var(--navy); margin-bottom: 14px; cursor: pointer; }
+.pos-total { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--navy); margin: 4px 0 10px; }
+.pos-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); font-size: .85rem; }
+.pos-row .pos-title { color: var(--navy); font-weight: 600; }
+.pos-row .pos-detail { color: var(--text-light); font-size: .78rem; }
+.venue-error { font-size: .8rem; color: var(--red); margin: 8px 0; }
 .btn-connect {
   padding: 11px 24px; background: var(--blue); color: #fff; font-weight: 700;
   font-size: .875rem; border-radius: var(--radius-sm); transition: all var(--transition);
@@ -1070,7 +1082,7 @@ h1, h2, h3, h4, .view-title, .auth-heading, .stat-val, .market-prob, .empty-titl
     <div id="view-accounts" class="view">
       <div class="view-header">
         <h1 class="view-title" id="accounts-view-title">Connect your accounts</h1>
-        <p class="view-sub">Connect Telegram to chat with our bot about prediction markets. More platforms are coming.</p>
+        <p class="view-sub">Get your saved-market alerts on Telegram, and see your venue positions here, view only.</p>
       </div>
       <div id="accounts-content">
         <div class="loading-center"><div class="spinner"></div> Loading…</div>
@@ -1951,8 +1963,8 @@ let _tgPollN    = 0;
 let _tgExpired       = false;
 
 function updateSidebarAccountsLabel() {
-  // Telegram is the only connection left: Kalshi API keys and Polymarket wallets are no longer collected (8 Oct 2026).
-  const connected = !!(_accountPrefs?.telegram_chat_id);
+  // Telegram, and since 30 Oct 2026 Polymarket and Kalshi (view-only; see renderVenueCards).
+  const connected = !!(_accountPrefs?.telegram_chat_id) || !!(_venues && (_venues.polymarket.linked || _venues.kalshi.linked));
   const sideLabel = connected ? 'My Accounts' : 'Connect Platforms';
   const mobLabel  = connected ? 'Accounts'    : 'Connect';
   const viewTitle = connected ? 'My Accounts' : 'Connect your accounts';
@@ -2004,8 +2016,10 @@ async function loadAccounts() {
     }
   } catch(e) {}
 
+  _venues = await fetchVenueStatus();
   renderAccountCards();
   updateSidebarAccountsLabel();
+  loadVenueHoldings();
 }
 
 function renderAccountCards() {
@@ -2013,9 +2027,7 @@ function renderAccountCards() {
   container.innerHTML = `
     <div class="platform-cards">
       ${renderTelegramCard(_tgState, _tgCode, _tgUsername, _tgExpired)}
-      ${renderComingSoonCard('predictit', 'PI', 'PredictIt',  'US political prediction market with small trade limits.')}
-      ${renderComingSoonCard('robinhood', 'RH', 'Robinhood',  'Commission-free prediction markets alongside stocks.')}
-      ${renderComingSoonCard('cryptocom', 'C',  'Crypto.com', 'Prediction markets integrated with a major crypto exchange.')}
+      ${renderVenueCards()}
     </div>`;
 
   // Wire help toggles
@@ -2028,20 +2040,6 @@ function renderAccountCards() {
   });
 }
 
-function renderComingSoonCard(logoClass, logoText, name, desc) {
-  return `
-  <div class="platform-card platform-card--soon">
-    <div class="platform-card-top">
-      <div class="platform-logo ${logoClass}" style="opacity:.5">${logoText}</div>
-      <div class="platform-info">
-        <div class="platform-name" style="color:var(--text-mid)">${name}</div>
-        <div class="platform-desc">${desc}</div>
-      </div>
-      <span class="platform-pill pill-coming-soon">Coming soon</span>
-    </div>
-  </div>`;
-}
-
 function renderTelegramCard(state, code, username, expired) {
   const pill = state === 'connected' ? '<span class="platform-pill pill-connected">&#10003; Connected</span>'
              : state === 'waiting'   ? '<span class="platform-pill pill-waiting">Pending…</span>'
@@ -2052,7 +2050,7 @@ function renderTelegramCard(state, code, username, expired) {
       <div class="platform-logo tg">TG</div>
       <div class="platform-info">
         <div class="platform-name">Telegram</div>
-        <div class="platform-desc">Chat with our bot about prediction markets.</div>
+        <div class="platform-desc">Your saved-market alerts on Telegram, as well as by email.</div>
       </div>
       ${pill}
     </div>`;
@@ -2079,19 +2077,181 @@ function renderTelegramCard(state, code, username, expired) {
     </div>`;
   }
 
-  /* CONNECTING IS DISABLED, 17 September 2026, because it cannot work. The bot ignores the
-     code: telegram-bot.js:599 discards the argument after "/start ", and handleStart (440-462)
-     upserts on telegram_id alone, never reading telegram_link_codes and never writing user_id.
-     A code issued here was never consumed and expired after 15 minutes while this card sat on
-     "Waiting for you to hit Start…" indefinitely. A control that does nothing is worse than no
-     control. Re-enable by restoring the onclick when the bot consumes codes; connectTelegram()
-     is deliberately left in place so that is a one-line change.
-     THE CONNECTED BRANCH ABOVE IS UNTOUCHED: anyone linked before this still shows as linked
-     and can still disconnect. */
+  /* CONNECTING IS BACK ON, 30 Oct 2026 (it was disabled from 17 Sep because the bot ignored the code): the bot now
+     consumes the code (ipredicta-telegram link-code-1030), and a linked member gets their saved-market alerts there
+     as well as by email (pr-agent alert sender). This must not deploy before both are live. */
   return `<div class="${cardClass}" id="card-telegram">${topRow}
-    <p class="platform-body">Telegram alerts are not available yet. We will turn this on when the bot can link to your account.</p>
-    <button class="btn-connect" disabled title="Telegram linking is not available yet">Telegram alerts coming soon</button>
+    <p class="platform-body">Link Telegram and your saved-market alerts come there as well as by email. You'll get a code that opens our bot; press Start.</p>
+    <button class="btn-connect" onclick="connectTelegram()">Connect Telegram</button>
   </div>`;
+}
+
+// ─── VENUE ACCOUNTS (Martin, 30 Oct 2026) ─────────────────────────────────────────────────────────
+// View-only positions. Polymarket by wallet address, only where polymarket.com is allowed (never the US or UK); Kalshi
+// by a READ-ONLY API key, US only, after explicit consent; the SERVER decides both from the edge location
+// (netlify/lib/linking.mjs) and this page draws what venue-link-status says. A venue already linked elsewhere shows
+// only Unlink, so a member can always remove what we hold. Venues that cannot really be linked are not shown.
+// Every string from a venue is escaped before it reaches the page.
+const KALSHI_CONSENT_VERSION = 'kalshi-readonly-2026-10-30';
+const KALSHI_CONSENT_POINTS = [
+  'Create a key on kalshi.com with read access only. We refuse any key that can trade or move money, and store nothing from it.',
+  'We store the key ID and the private key. The private key is encrypted, can be read only by our server, and is never shown again, here or in the app.',
+  'We use it only to show you your Kalshi balance and positions here and in the app. We never trade or move money.',
+  'Unlink at any time to delete it at once. If Kalshi stops accepting it, we stop using it and delete it after 14 days.',
+];
+let _venues = null;
+let _venueHoldings = { polymarket: null, kalshi: null };
+let _venueErrors = { polymarket: null, kalshi: null };
+
+function escHtml(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+const money = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+async function venueCall(path, method, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return null;
+  try {
+    const res = await fetch('/.netlify/functions/' + path, {
+      method,
+      headers: Object.assign({ 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' }, body ? { 'Content-Type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let json = null;
+    try { json = await res.json(); } catch (e) { json = null; }
+    return { status: res.status, json };
+  } catch (e) { return null; }
+}
+
+async function fetchVenueStatus() {
+  const none = { polymarket: { allowed: false, linked: false }, kalshi: { allowed: false, linked: false } };
+  const r = await venueCall('venue-link-status', 'GET');
+  if (!r || r.status !== 200 || !r.json) return none;
+  const p = r.json.polymarket || {}, k = r.json.kalshi || {};
+  return {
+    polymarket: { allowed: p.allowed === true, linked: p.linked === true, address: p.address || null, status: p.status || null },
+    kalshi: { allowed: k.allowed === true, linked: k.linked === true, key: k.key || null, status: k.status || null },
+  };
+}
+
+async function loadVenueHoldings() {
+  if (!_venues) return;
+  for (const [v, path] of [['polymarket', 'polymarket-positions'], ['kalshi', 'kalshi-portfolio']]) {
+    const st = _venues[v];
+    if (!st.linked || !st.allowed || st.status === 'needs_relink') continue;
+    const r = await venueCall(path, 'GET');
+    if (r && r.status === 200) { _venueHoldings[v] = r.json; _venueErrors[v] = null; }
+    else if (r && r.status === 409 && v === 'kalshi') { _venues.kalshi.status = 'needs_relink'; }
+    else if (!(r && r.status === 429)) { _venueErrors[v] = (r && r.json && r.json.error) || "We couldn't read your positions just now."; }
+    refreshVenueCard(v);
+  }
+}
+
+function renderHoldings(h, venue) {
+  if (!h || !Array.isArray(h.positions)) return '';
+  const rows = h.positions.map(p => venue === 'polymarket'
+    ? `<div class="pos-row"><div><div class="pos-title">${escHtml(p.title)}</div><div class="pos-detail">${escHtml(p.outcome || '')}${p.outcome ? ', ' : ''}${escHtml(p.size)} shares</div></div><div>${p.value != null ? money(p.value) : ''}</div></div>`
+    : `<div class="pos-row"><div><div class="pos-title">${escHtml(p.ticker)}</div><div class="pos-detail">${escHtml(Math.abs(p.position))} ${p.position > 0 ? 'Yes' : 'No'} contracts</div></div><div>${p.exposure != null ? money(p.exposure) : ''}</div></div>`).join('');
+  const total = h.balance != null ? `<div class="pos-total">Balance ${money(h.balance)}</div>` : h.total != null ? `<div class="pos-total">Positions worth ${money(h.total)}</div>` : '';
+  const at = h.readAt ? new Date(h.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+  return `${total}${h.positions.length ? rows : '<p class="platform-body">No open positions found for this account.</p>'}
+    <p class="platform-security-note">Read from ${venue === 'polymarket' ? 'Polymarket' : 'Kalshi'}${at ? ' at ' + escHtml(at) : ''}. View only: iPredicta cannot trade or move money.</p>`;
+}
+
+function renderVenueCards() {
+  if (!_venues) return '';
+  let out = '';
+  if (_venues.kalshi.allowed || _venues.kalshi.linked) out += renderKalshiCard();
+  if (_venues.polymarket.allowed || _venues.polymarket.linked) out += renderPolymarketCard();
+  return out;
+}
+
+function venueTop(id, logo, name, desc, linked, relink) {
+  const pill = relink ? '<span class="platform-pill pill-waiting">Reconnect</span>'
+             : linked ? '<span class="platform-pill pill-connected">&#10003; Linked</span>'
+             : '<span class="platform-pill pill-not-connected">Not linked</span>';
+  return `<div class="platform-card-top"><div class="platform-logo ${id}">${logo}</div><div class="platform-info"><div class="platform-name">${name}</div><div class="platform-desc">${desc}</div></div>${pill}</div>`;
+}
+
+function renderPolymarketCard() {
+  const st = _venues.polymarket;
+  const err = _venueErrors.polymarket ? `<div class="venue-error">${escHtml(_venueErrors.polymarket)}</div>` : '';
+  const top = venueTop('polymarket', 'PM', 'Polymarket', 'Your positions, view only, from your wallet address.', st.linked, false);
+  if (st.linked) {
+    return `<div class="platform-card connected" id="card-polymarket">${top}
+      <div class="platform-credential">Wallet ${escHtml(st.address || '')}</div>
+      ${st.allowed ? renderHoldings(_venueHoldings.polymarket, 'polymarket') : '<p class="platform-body">Polymarket positions are not shown from your current location. You can still unlink.</p>'}
+      ${err}<button class="btn-disconnect" onclick="confirmDisconnect('polymarket','Polymarket')">Unlink</button></div>`;
+  }
+  return `<div class="platform-card" id="card-polymarket">${top}
+    <p class="platform-body">Paste the wallet address from your Polymarket profile. We store only the address, and Polymarket publishes the positions for it.</p>
+    <div class="platform-input-group"><label class="platform-input-label" for="poly-address">Wallet address</label>
+      <input class="platform-input" id="poly-address" autocomplete="off" spellcheck="false" placeholder="0x…"></div>
+    ${err}<button class="btn-connect" onclick="linkPolymarket()">Link Polymarket</button></div>`;
+}
+
+function renderKalshiCard() {
+  const st = _venues.kalshi;
+  const relink = st.linked && st.status === 'needs_relink';
+  const err = _venueErrors.kalshi ? `<div class="venue-error">${escHtml(_venueErrors.kalshi)}</div>` : '';
+  const top = venueTop('kalshi', 'K', 'Kalshi', 'Your balance and positions, view only, with a read-only API key.', st.linked, relink);
+  const form = st.allowed && (!st.linked || relink) ? `
+    <ul class="consent-list">${KALSHI_CONSENT_POINTS.map(p => `<li>${escHtml(p)}</li>`).join('')}</ul>
+    <label class="consent-check"><input type="checkbox" id="kalshi-agree" onchange="document.getElementById('kalshi-fields').hidden=!this.checked"> I understand what is stored and agree.</label>
+    <div id="kalshi-fields" hidden>
+      <div class="platform-input-group"><label class="platform-input-label" for="kalshi-key-id">API key ID</label>
+        <input class="platform-input" id="kalshi-key-id" autocomplete="off" spellcheck="false"></div>
+      <div class="platform-input-group"><label class="platform-input-label" for="kalshi-private-key">Private key</label>
+        <textarea class="platform-input" id="kalshi-private-key" autocomplete="off" spellcheck="false" placeholder="-----BEGIN RSA PRIVATE KEY-----"></textarea></div>
+      ${err}<button class="btn-connect" onclick="linkKalshi()">Link Kalshi</button>
+    </div>` : '';
+  if (st.linked) {
+    return `<div class="platform-card ${relink ? '' : 'connected'}" id="card-kalshi">${top}
+      <div class="platform-credential">Key ${escHtml(st.key || '')}</div>
+      ${relink ? '<p class="platform-body">Kalshi stopped accepting your key, so we stopped using it. Link a new read-only key below, or unlink.</p>' : ''}
+      ${!st.allowed ? '<p class="platform-body">Kalshi is shown from the US only. You can still unlink.</p>' : relink ? '' : renderHoldings(_venueHoldings.kalshi, 'kalshi')}
+      ${relink ? '' : err}<button class="btn-disconnect" onclick="confirmDisconnect('kalshi','Kalshi')">Unlink</button>${form}</div>`;
+  }
+  return `<div class="platform-card" id="card-kalshi">${top}${form}</div>`;
+}
+
+function refreshVenueCard(v) {
+  const old = document.getElementById('card-' + v);
+  if (!old || !_venues) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = v === 'kalshi' ? renderKalshiCard() : renderPolymarketCard();
+  old.replaceWith(tmp.firstElementChild);
+}
+
+async function linkPolymarket() {
+  const el = document.getElementById('poly-address');
+  const address = (el && el.value || '').trim();
+  _venueErrors.polymarket = null;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) { _venueErrors.polymarket = 'That is not a Polymarket wallet address. It starts with 0x and has 40 more characters.'; return refreshVenueCard('polymarket'); }
+  const r = await venueCall('polymarket-link', 'POST', { address });
+  if (!r || r.status !== 200) { _venueErrors.polymarket = (r && r.json && r.json.error) || "We couldn't reach iPredicta just now."; return refreshVenueCard('polymarket'); }
+  _venueHoldings.polymarket = r.json;
+  _venues = await fetchVenueStatus();
+  refreshVenueCard('polymarket');
+  updateSidebarAccountsLabel();
+  toast('Polymarket linked', 'success');
+}
+
+async function linkKalshi() {
+  const idEl = document.getElementById('kalshi-key-id');
+  const pkEl = document.getElementById('kalshi-private-key');
+  const keyId = (idEl && idEl.value || '').trim();
+  const privateKey = (pkEl && pkEl.value || '').trim();
+  if (pkEl) pkEl.value = '';   // never left on the page, whatever the answer
+  _venueErrors.kalshi = null;
+  if (!keyId || !privateKey) { _venueErrors.kalshi = 'Paste both the key ID and the private key.'; return refreshVenueCard('kalshi'); }
+  const r = await venueCall('kalshi-link', 'POST', { consent: KALSHI_CONSENT_VERSION, keyId, privateKey });
+  if (!r || r.status !== 200) { _venueErrors.kalshi = (r && r.json && r.json.error) || "We couldn't reach iPredicta just now."; return refreshVenueCard('kalshi'); }
+  _venueHoldings.kalshi = r.json;
+  _venues = await fetchVenueStatus();
+  refreshVenueCard('kalshi');
+  updateSidebarAccountsLabel();
+  toast('Kalshi linked', 'success');
 }
 
 function refreshTelegramCard() {
@@ -2220,6 +2380,15 @@ async function executeDisconnect(platform, name) {
     return;
   }
 
+  if (platform === 'polymarket' || platform === 'kalshi') {
+    const r = await venueCall(platform + '-unlink', 'POST');
+    if (!r || r.status !== 200) { toast('Failed to unlink ' + name, 'error'); return; }
+    _venueHoldings[platform] = null; _venueErrors[platform] = null;
+    _venues = await fetchVenueStatus();
+    renderAccountCards();
+    updateSidebarAccountsLabel();
+    toast(name + ' unlinked', 'info');
+  }
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
