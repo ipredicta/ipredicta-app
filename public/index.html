@@ -2130,7 +2130,7 @@ async function fetchVenueStatus() {
   const p = r.json.polymarket || {}, k = r.json.kalshi || {};
   return {
     polymarket: { allowed: p.allowed === true, linked: p.linked === true, address: p.address || null, status: p.status || null },
-    kalshi: { allowed: k.allowed === true, linked: k.linked === true, key: k.key || null, status: k.status || null },
+    kalshi: { allowed: k.allowed === true, paused: k.paused === true, linked: k.linked === true, key: k.key || null, status: k.status || null },
   };
 }
 
@@ -2161,7 +2161,7 @@ function renderHoldings(h, venue) {
 function renderVenueCards() {
   if (!_venues) return '';
   let out = '';
-  if (_venues.kalshi.allowed || _venues.kalshi.linked) out += renderKalshiCard();
+  if (_venues.kalshi.allowed || _venues.kalshi.linked || _venues.kalshi.paused) out += renderKalshiCard();
   if (_venues.polymarket.allowed || _venues.polymarket.linked) out += renderPolymarketCard();
   return out;
 }
@@ -2209,9 +2209,10 @@ function renderKalshiCard() {
     return `<div class="platform-card ${relink ? '' : 'connected'}" id="card-kalshi">${top}
       <div class="platform-credential">Key ${escHtml(st.key || '')}</div>
       ${relink ? '<p class="platform-body">Kalshi stopped accepting your key, so we stopped using it. Link a new read-only key below, or unlink.</p>' : ''}
-      ${!st.allowed ? '<p class="platform-body">Kalshi is shown from the US only. You can still unlink.</p>' : relink ? '' : renderHoldings(_venueHoldings.kalshi, 'kalshi')}
+      ${!st.allowed ? (st.paused ? '<p class="platform-body">Kalshi linking isn\'t available right now. You can still unlink.</p>' : '<p class="platform-body">Kalshi is shown from the US only. You can still unlink.</p>') : relink ? '' : renderHoldings(_venueHoldings.kalshi, 'kalshi')}
       ${relink ? '' : err}<button class="btn-disconnect" onclick="confirmDisconnect('kalshi','Kalshi')">Unlink</button>${form}</div>`;
   }
+  if (st.paused) return `<div class="platform-card" id="card-kalshi">${top}<p class="platform-body">Kalshi linking isn't available right now.</p></div>`;
   return `<div class="platform-card" id="card-kalshi">${top}${form}</div>`;
 }
 

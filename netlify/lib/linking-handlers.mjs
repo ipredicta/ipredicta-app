@@ -8,8 +8,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import {
-  ADDRESS, KEY_ID, RELINK_AFTER, SB_URL, countsAsRefusal, decrypt, edgeGeo, encrypt, encryptionReady, inKalshiMaintenance, json,
-  kalshiAllowed, kalshiGet, keyHint, loadPrivateKey, maskAddress, memberFrom, polymarketAllowed, polymarketPositions,
+  ADDRESS, KALSHI_PAUSED, KEY_ID, RELINK_AFTER, SB_URL, countsAsRefusal, decrypt, edgeGeo, encrypt, encryptionReady, inKalshiMaintenance, json,
+  kalshiAllowed, kalshiGet, kalshiLinkingOn, keyHint, loadPrivateKey, maskAddress, memberFrom, polymarketAllowed, polymarketPositions,
   readRestrictions, scopeVerdict, trimPortfolio,
 } from './linking.mjs';
 
@@ -67,7 +67,8 @@ export function venueLinkStatus(deps) {
         status: poly ? poly.status || 'ok' : null,
       },
       kalshi: {
-        allowed: kalshiAllowed(geo),
+        allowed: kalshiLinkingOn(deps.env) && kalshiAllowed(geo),
+        paused: !kalshiLinkingOn(deps.env) && kalshiAllowed(geo),
         linked: !!kal,
         key: kal ? keyHint(kal.public_ref) : null,
         status: kal ? kal.status || 'ok' : null,
@@ -120,6 +121,7 @@ export const KALSHI_CONSENT_VERSION = 'kalshi-readonly-2026-10-30';
 export function kalshiLink(deps) {
   return wrap('POST', deps, async ({ req, sb, user, geo }) => {
     if (!kalshiAllowed(geo)) return json(403, { error: NOT_HERE.kalshi });
+    if (!kalshiLinkingOn(deps.env)) return json(503, { error: KALSHI_PAUSED, paused: true });
     // Before anything is sent to Kalshi: without a valid key there is nowhere safe to put theirs (session 4, 30 Oct).
     if (!encryptionReady(deps.env)) {
       console.error('kalshi-link: no valid KALSHI_LINK_ENC_KEY_V<n> configured (64 hex characters); refusing before contacting Kalshi');
@@ -159,6 +161,7 @@ export function kalshiLink(deps) {
 export function kalshiPortfolio(deps) {
   return wrap('GET', deps, async ({ sb, user, geo }) => {
     if (!kalshiAllowed(geo)) return json(403, { error: NOT_HERE.kalshi });
+    if (!kalshiLinkingOn(deps.env)) return json(503, { error: KALSHI_PAUSED, paused: true });
     const row = await linkRow(sb, user.id, 'kalshi');
     if (!row) return json(404, { error: 'No Kalshi account is linked.' });
     if (row.status === 'needs_relink') return json(409, { error: 'Kalshi stopped accepting your key. Link it again.', status: 'needs_relink' });

@@ -78,7 +78,7 @@ function fakeNet({ scopes = ['read'], kalshiStatus = 200, file = FILE } = {}) {
 
 const WED_NOON = new Date('2026-11-04T11:00:00Z'); // Wednesday 12:00 Spain
 function deps(db, net, now = WED_NOON) {
-  return { sb: () => db.client, fetch: net.fetchImpl, env: { KALSHI_LINK_ENC_KEY_V1: K1 }, now: () => now };
+  return { sb: () => db.client, fetch: net.fetchImpl, env: { KALSHI_LINK_ENC_KEY_V1: K1, KALSHI_LINKING: 'on' }, now: () => now };
 }
 const call = async (h, { method = 'GET', body, token = 'good', country = 'FR', sub = null } = {}) => {
   const req = new Request('https://app.ipredicta.co/x', { method, headers: { authorization: token ? `Bearer ${token}` : '', 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
@@ -172,7 +172,7 @@ test('Kalshi link: US only, consent required, trading keys refused and nothing s
   assert.equal(sec.consent_version, KALSHI_CONSENT_VERSION);
 
   const s = await call(venueLinkStatus(deps(db, fakeNet())), { country: 'US' });
-  assert.deepEqual(s.body.kalshi, { allowed: true, linked: true, key: '…6666', status: 'ok' });
+  assert.deepEqual(s.body.kalshi, { allowed: true, paused: false, linked: true, key: '…6666', status: 'ok' });
   assert.equal(s.body.polymarket.allowed, false);
   assert.ok(!JSON.stringify(s.body).includes(sec.ciphertext.slice(0, 20)));
 });
@@ -262,4 +262,39 @@ test('encryption: versioned, tamper-evident, and rotatable', () => {
   const flipped = c1.slice(0, -1) + (c1.endsWith('0') ? '1' : '0');
   assert.throws(() => decrypt(flipped, { KALSHI_LINK_ENC_KEY_V1: K1 }));
   assert.throws(() => encrypt('x', {}));
+});
+
+test('the Kalshi switch (Martin, 2 Nov 2026): off unless KALSHI_LINKING is exactly "on"; off pauses status, link and portfolio before Kalshi is contacted, and unlink still works', async () => {
+  const db = fakeDb();
+  const net = fakeNet();
+  // Linked while on.
+  assert.equal((await call(kalshiLink(deps(db, net)), { method: 'POST', body: kalshiBody(), country: 'US', sub: 'NJ' })).status, 200);
+  for (const v of [undefined, '', 'off', 'true', 'ON ', 'yes']) {
+    const d = { ...deps(db, net, new Date(WED_NOON.getTime() + 60_000)), env: { KALSHI_LINK_ENC_KEY_V1: K1, ...(v === undefined ? {} : { KALSHI_LINKING: v }) } };
+    if (v === 'ON ') {
+      // Case and spaces are forgiven: "ON " means on.
+      assert.equal((await call(venueLinkStatus(d), { country: 'US', sub: 'NJ' })).body.kalshi.allowed, true);
+      continue;
+    }
+    const before = net.calls.length;
+    const st = await call(venueLinkStatus(d), { country: 'US', sub: 'NJ' });
+    assert.equal(st.body.kalshi.allowed, false, String(v));
+    assert.equal(st.body.kalshi.paused, true, String(v));
+    assert.equal(st.body.kalshi.linked, true);
+    const l = await call(kalshiLink(d), { method: 'POST', body: kalshiBody(), country: 'US', sub: 'NJ' });
+    assert.equal(l.status, 503);
+    assert.equal(l.body.paused, true);
+    assert.equal(l.body.error, "Kalshi linking isn't available right now.");
+    assert.equal((await call(kalshiPortfolio(d), { country: 'US', sub: 'NJ' })).status, 503);
+    assert.ok(!net.calls.slice(before).some((u) => u.includes('kalshi')), 'Kalshi was contacted while off');
+  }
+  // Outside the US it is not "paused", just not offered.
+  const offFr = { ...deps(db, net), env: { KALSHI_LINK_ENC_KEY_V1: K1 } };
+  const fr = await call(venueLinkStatus(offFr), { country: 'FR' });
+  assert.equal(fr.body.kalshi.paused, false);
+  assert.equal(fr.body.kalshi.allowed, false);
+  // Unlink works while off.
+  assert.equal((await call(kalshiUnlink(offFr), { method: 'POST', country: 'US', sub: 'NJ' })).status, 200);
+  assert.equal(db.rows.venue_secrets.length, 0);
+  assert.equal(db.rows.venue_links.length, 0);
 });

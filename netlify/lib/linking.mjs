@@ -114,6 +114,15 @@ export async function readRestrictions(fetchImpl = fetch) {
 /** Kalshi linking: US readers only (Martin, 30 Oct 2026). */
 export const kalshiAllowed = (geo) => geo.country === 'US';
 
+/* THE KALSHI LINKING SWITCH (Martin, 2 Nov 2026). On only when the function environment variable KALSHI_LINKING is
+ * exactly "on"; unset or anything else is off, so a deploy that lost the variable fails closed. Off: venue-link-status
+ * says Kalshi linking is paused (allowed false, paused true where Kalshi would otherwise be allowed), kalshi-link and
+ * kalshi-portfolio refuse before contacting Kalshi, and kalshi-unlink still works, so a member can always remove what we
+ * hold. The website and every app build read venue-link-status, so this one variable turns it off everywhere.
+ * To flip it: set the variable on the Netlify site and redeploy (a variable change reaches functions only on a deploy). */
+export const kalshiLinkingOn = (env = process.env) => String((env && env.KALSHI_LINKING) || '').trim().toLowerCase() === 'on';
+export const KALSHI_PAUSED = "Kalshi linking isn't available right now.";
+
 // ── Polymarket: public data, keyed on the PROFILE (proxy) address ─────────────────────────────────────────────────────
 export const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 export const maskAddress = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
