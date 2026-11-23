@@ -28,15 +28,14 @@
  *      control over nothing. Disabled toggles were rejected for the same reason.
  *      The RECORD still carries all three keys: see RECORD_CATEGORIES.
  *
- *   2. NO LOGGING. The site POSTs each decision to its own
- *      /.netlify/functions/consent-log. That endpoint sends no CORS headers and
- *      has no OPTIONS handler, so a cross-origin POST from this origin is
- *      blocked by the browser at preflight, for both fetch and sendBeacon with
- *      an application/json body. A call that can only ever fail is worse than no
- *      call, because it reads as working. A decision made here is stored and
- *      honoured but NOT logged, so the Article 7(1) demonstrability record has a
- *      hole in it for app-originated decisions. See ROADMAP.md (NOW) and
- *      TECH_DEBT.md.
+ *   2. ITS OWN LOGGING ENDPOINT. The site POSTs each decision to its own
+ *      /.netlify/functions/consent-log, which is same-origin-only (no CORS
+ *      headers, no OPTIONS handler), so a call from here to it would be blocked
+ *      at preflight. From 2026-09-19 to 2026-11-23 decisions made here were
+ *      stored and honoured but NOT logged, a hole in the Article 7(1) record
+ *      (TECH_DEBT #1). Since then this origin has its own consent-log
+ *      (netlify/lib/consent-log.mjs) writing to the same table, and logRecord
+ *      below calls it, same-origin, exactly as the site's file does.
  *
  *   3. send_page_view IS FALSE and page_location is synthetic. The members area
  *      is one URL with five screens, so GA4 is configured not to send its own
@@ -221,8 +220,8 @@
   // SOMEONE WHO HAS ALREADY ANSWERED MUST NOT BE ASKED AGAIN, so the record is
   // copied across UNCHANGED: the same consent_id, decided_at, policy_version and
   // choices. It is not a fresh decision and policy_version is not bumped.
-  // Nothing is re-logged, which here is trivially true because nothing is logged
-  // at all.
+  // Nothing is re-logged: only decide() calls logRecord, so a copied record
+  // adds no row to consent_records.
   //
   // THE OLD RECORD IS DELETED, and only after the cookie write is verified.
   // Leaving it would make it a stale snapshot, so a member who later withdrew
@@ -414,18 +413,34 @@
     };
   }
 
-  // NO logRecord() HERE, AND THE ABSENCE IS THE POINT. See point 2 in the file
-  // header: the site's endpoint is same-origin-only, so the honest options were
-  // no call or a call that always fails. Do not "fix" this by pointing a fetch
-  // at https://ipredicta.co/.netlify/functions/consent-log; it will be blocked
-  // at preflight and the failure is silent. The fix is an endpoint on this
-  // origin, which is a ROADMAP item and needs the service-role key and the
-  // consent_records table.
+  // Logging is fire and forget and must never block or break the page, as on the
+  // site. If the endpoint is down the member's choice is still stored in the
+  // cookie and still honoured; what is lost is our ability to demonstrate it,
+  // which is our problem and not something to show a member. SAME ORIGIN ONLY:
+  // never point this at https://ipredicta.co/.netlify/functions/consent-log,
+  // which the browser blocks at preflight without a visible error.
+  var LOG_ENDPOINT = '/.netlify/functions/consent-log';
+  function logRecord(rec) {
+    try {
+      var body = JSON.stringify(rec);
+      if (navigator.sendBeacon) {
+        var blob = new Blob([body], { type: 'application/json' });
+        if (navigator.sendBeacon(LOG_ENDPOINT, blob)) return;
+      }
+      fetch(LOG_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+        keepalive: true
+      }).catch(function () { /* see comment above */ });
+    } catch (e) { /* see comment above */ }
+  }
 
   function decide(choices, method) {
     var existing = readRecord();
     var rec = buildRecord(choices, method, existing);
     writeRecord(rec);
+    logRecord(rec);
     applyChoices(rec.choices);
     closeBanner();
     closePanel();

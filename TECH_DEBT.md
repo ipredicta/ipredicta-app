@@ -10,7 +10,24 @@ priority; the state line says what is actually true today.
 
 ## 1. A decision made in the members area is never logged
 
-**State: open, and it is a compliance hole, not an inconvenience.**
+**State (23 Nov 2026): fixed on branch `fix/consent-log-1123`, NOT merged.** A merge to main
+here is a deploy within seconds, so it waits for the owner's go. Until it merges, the hole below
+is still open in production.
+
+The fix: `netlify/functions/consent-log.mjs` on this origin (handler in
+`netlify/lib/consent-log.mjs`), copied from the site's function: the same table, whitelist
+(`analytics`, `marketing`) and row shape, and every failure answers 204 with a loud log line.
+`public/assets/consent.js` now sends each decision to it, same-origin, by `sendBeacon` with a
+`fetch` fallback, exactly as the site's file does. Three differences: `page_path` is stored as
+`app.ipredicta.co/` so a row from here can be told apart from the site's home page; a POST
+whose `Origin` names another host is dropped; and every response carries `X-Robots-Tag`.
+Tests: `tests/consent-log.test.mjs`, 18 tests, including the banner's Accept and Reject in a
+fake DOM, followed through to the beacon (removing the `logRecord` call fails two of them).
+`node --test tests/*.test.mjs` 28/28. The only check left is on the live site after the merge:
+one decision in the members area, then a `consent_records` row with `page_path`
+`app.ipredicta.co/`, read with the service key.
+
+What follows is the original entry, from 19 September 2026.
 
 The site POSTs every consent decision to its own `/.netlify/functions/consent-log`, which
 writes a row to `public.consent_records` in Supabase. That row is how we demonstrate the
@@ -43,7 +60,26 @@ site for the Kalshi and Telegram functions (checked 19 September 2026). See ROAD
 
 ## 2. POLICY_VERSION is hand-copied across two repositories with nothing comparing them
 
-**State: open. The failure mode is silent and permanent.**
+**State (23 Nov 2026): it has happened, and it has been live since 29 October 2026.** The site
+bumped its version three times (`2026-10-29.1` when Mocentric joined marketing, `2026-10-30.1`,
+`2026-10-30.2`). This file still says `2026-08-17.1`. Read from the code, not measured on
+members: every member whose last decision was made on the site since 29 October is shown the
+banner here, because their record's version is not this file's. If they answer here,
+`buildRecord` stamps `2026-08-17.1`, and then the site sees a stale record and asks them again.
+That is the loop described below. It fails closed (nothing loads without a current decision on
+each origin), so nobody is tracked without consent. But members are asked again and again, and
+`marketing` is carried forward under a version older than the one it was given at.
+
+**Not fixed in the 23 Nov branch, because the fix needs a ruling.** Copying `2026-10-30.2` here
+alone would let this origin carry forward a `marketing: true` that a member gave under an older
+policy, and stamp it as consent to Mocentric. The safe version of the change is: copy the site's
+version, and carry an unasked category forward only from a record of the same version, otherwise
+write it `false`. But a member whose record is then written here is never asked about
+advertising on the site, which is the open "Decide what happens to a member whose first decision
+is made here" item in ROADMAP.md NOW. Both together are for the owner. Until then, the check
+suggested below (compare this literal with the site's) would at least have caught it.
+
+What follows is the original entry, from 19 September 2026.
 
 `public/assets/consent.js` declares `POLICY_VERSION = '2026-08-17.1'`. So does
 `ipredicta 3/assets/js/consent.js` in ipredicta-site. Both read the same shared cookie and

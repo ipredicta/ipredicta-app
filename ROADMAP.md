@@ -12,6 +12,9 @@ decision about eventually.
 
 ### Give this origin a consent-log endpoint
 
+**Built on 23 November 2026, branch `fix/consent-log-1123`, waiting for the owner's merge** (a
+merge here is a deploy). See TECH_DEBT.md #1. The entry below is the plan as written on 19 Sep.
+
 The members area can now take a consent decision it cannot record. That is the one thing
 shipped here that is worse than what the site does, and it is not a detail: the record in
 `public.consent_records` is the whole of our Article 7(1) evidence, and decisions made here
