@@ -116,18 +116,6 @@ Step 3 is the one that catches the category-preservation bug if it ever returns.
 
 ## LATER
 
-### The point at which a hand-written mechanism stops being the right answer
-
-The site's ROADMAP carries a CMP crossover trigger: conditions about the number of
-categories and the number of vendors, past which a hand-rolled consent mechanism costs more
-than a bought one. **This change adds a second property to that calculation**, and the
-trigger was written when there was one.
-
-Two implementations of the same policy, in two repositories, sharing a cookie and a version
-constant that nothing compares, is exactly the shape the trigger exists to catch. Read the
-site's entry before adding a category to either, and treat "a second origin" as worth a
-condition of its own.
-
 ### Analytics on the members area may be the wrong instrument
 
 GA4 answers "which screens are used". The questions actually worth asking about a members
