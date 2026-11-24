@@ -12,8 +12,9 @@ decision about eventually.
 
 ### Give this origin a consent-log endpoint
 
-**Built on 23 November 2026, branch `fix/consent-log-1123`, waiting for the owner's merge** (a
-merge here is a deploy). See TECH_DEBT.md #1. The entry below is the plan as written on 19 Sep.
+**DONE 24 November 2026: merged at 09:38 Spain (1451273) and checked live**, one row from a
+members-area decision in `consent_records`. See TECH_DEBT.md #1. The entry below is the plan as
+written on 19 Sep.
 
 The members area can now take a consent decision it cannot record. That is the one thing
 shipped here that is worse than what the site does, and it is not a detail: the record in
@@ -49,6 +50,12 @@ Copy the site's function rather than reinventing it, including the part where ev
 path returns 204 and logs loudly. A member's privacy choice must not surface an error.
 
 ### Decide what happens to a member whose first decision is made here
+
+**DECIDED AND BUILT 24 November 2026 (the owner):** nobody is asked twice. The members area uses
+the site's version, takes a current site decision as it stands, and asks only when there is
+none, with the site's two categories and wording, so a first decision made here is a complete
+decision for both origins and nobody is left unasked. TECH_DEBT.md #2. The entry below is the
+question as written on 19 Sep.
 
 **This is a consequence of the brief, discovered while implementing it, and it needs a
 ruling rather than code.**

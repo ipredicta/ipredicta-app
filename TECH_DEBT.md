@@ -10,9 +10,11 @@ priority; the state line says what is actually true today.
 
 ## 1. A decision made in the members area is never logged
 
-**State (23 Nov 2026): fixed on branch `fix/consent-log-1123`, NOT merged.** A merge to main
-here is a deploy within seconds, so it waits for the owner's go. Until it merges, the hole below
-is still open in production.
+**State (24 Nov 2026): FIXED, merged to main as 1451273 at 09:38 Spain** (the owner's yes, 23 Nov).
+Checked live the same minute: a Reject on the members-area banner in Chrome (08:38:59 UTC) reached
+`consent_records` as one row, page_path `app.ipredicta.co/`, method `banner-reject`, received
+08:39:00 UTC (read on the box with the service key, filtered to that page_path since 08:38 UTC).
+That row carries `2026-08-17.1`, this file's version until #2 was fixed the same morning.
 
 The fix: `netlify/functions/consent-log.mjs` on this origin (handler in
 `netlify/lib/consent-log.mjs`), copied from the site's function: the same table, whitelist
@@ -60,7 +62,21 @@ site for the Kalshi and Telegram functions (checked 19 September 2026). See ROAD
 
 ## 2. POLICY_VERSION is hand-copied across two repositories with nothing comparing them
 
-**State (23 Nov 2026): it has happened, and it has been live since 29 October 2026.** The site
+**State (24 Nov 2026): FIXED by the owner's ruling of 24 Nov, branch `feat/consent-site-parity-1124`.**
+Everyone reaches the members area through the site first, so nobody is asked twice: this file
+uses the site's version (`2026-10-30.2`), takes a current site decision as it stands (no banner,
+nothing rewritten or logged), and asks only when there is none, with exactly the site's two
+categories and the site's wording. One phrase differs, approved by the owner: "from Cookie
+settings under Settings" for the site's "from the Cookie settings link in the footer", which
+does not exist here. The carry-forward of unasked categories and the `reviews` key are gone.
+`tests/consent-parity.test.mjs` compares the version, the categories and the banner and panel
+wording with the site's consent.js on its main branch (git, not production, which is minified)
+and allows exactly that phrase; it fails rather than skips when it cannot read the site file.
+It runs only when this repo's tests run (no CI), so a site version bump still needs a matching
+bump here. Every member whose decision was made here is asked once more (their record is the
+old version), then never again on either origin for this version.
+
+**Previous state (23 Nov 2026): it has happened, and it has been live since 29 October 2026.** The site
 bumped its version three times (`2026-10-29.1` when Mocentric joined marketing, `2026-10-30.1`,
 `2026-10-30.2`). This file still says `2026-08-17.1`. Read from the code, not measured on
 members: every member whose last decision was made on the site since 29 October is shown the

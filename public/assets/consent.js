@@ -22,11 +22,17 @@
  *
  * WHAT IS DIFFERENT HERE, and why:
  *
- *   1. ONE VISIBLE CATEGORY. The banner and the panel offer Analytics only.
- *      impact.com is not on this origin and the Trustpilot widget is not either,
- *      so offering "Affiliate tracking" and "Reviews" here would be offering a
- *      control over nothing. Disabled toggles were rejected for the same reason.
- *      The RECORD still carries all three keys: see RECORD_CATEGORIES.
+ *   1. NOBODY IS ASKED TWICE (the owner's ruling, 24 Nov 2026). Everyone reaches
+ *      the members area through the site first, so a current site decision is
+ *      taken here as it stands: no banner, nothing rewritten, nothing logged.
+ *      Only with no current decision does this origin ask, and then with exactly
+ *      the site's two categories, the site's version and the site's wording,
+ *      word for word except one phrase: the site's banner points to "the Cookie
+ *      settings link in the footer", which this origin does not have, so here it
+ *      says "Cookie settings under Settings". tests/consent-parity.test.mjs
+ *      compares all of it with the site's consent.js and allows exactly that one
+ *      difference. Until that ruling this origin asked about Analytics only, under
+ *      an older version, and the two origins re-asked each other's members.
  *
  *   2. ITS OWN LOGGING ENDPOINT. The site POSTs each decision to its own
  *      /.netlify/functions/consent-log, which is same-origin-only (no CORS
@@ -63,14 +69,14 @@
    * the vendor set as a whole, and the two origins compare it against the same
    * shared record. Bumping it here and not there would re-prompt every member
    * on one origin and not the other, and the two would then take turns deciding
-   * the other's record was stale.
+   * the other's record was stale. That happened from 29 Oct to 24 Nov 2026,
+   * when the site moved to 2026-10-30.2 and this file stayed on 2026-08-17.1.
    *
-   * IT IS ALSO NOT CHECKED ANYWHERE. This is a hand-copied constant in a second
-   * repository with nothing comparing the two, which is the defect recorded in
-   * TECH_DEBT.md. If the site bumps this and nobody bumps it here, the symptom
-   * is not an error: it is members being asked twice, for ever.
+   * IT IS CHECKED NOW: tests/consent-parity.test.mjs fails when this differs
+   * from the site's consent.js. That test runs when this repo's tests run (it
+   * has no CI), so a site bump still needs someone to bump it here.
    */
-  var POLICY_VERSION = '2026-08-17.1';
+  var POLICY_VERSION = '2026-10-30.2';
 
   /* ── Vendor identifiers ──────────────────────────────────────────────────── */
   var GA_MEASUREMENT_ID = 'G-RMVT3V0874';
@@ -93,29 +99,37 @@
   var PRIVACY_URL = 'https://ipredicta.co/privacy/';
 
   /* ── Categories ────────────────────────────────────────────────────────────
-   * TWO LISTS, DELIBERATELY, AND THEY DO DIFFERENT JOBS.
+   * THE SITE'S TWO, WORD FOR WORD (the owner, 24 Nov 2026). A member with no
+   * current decision is asked exactly what the site asks, so one answer counts
+   * on both origins. RECORD_CATEGORIES is the shared record's shape, the same
+   * two keys the site writes (it dropped `reviews` on 18 Nov). `marketing`
+   * keeps its key although the site titles it "Advertising and affiliate
+   * tracking": the key is the wire format, the title is copy. No vendor in that
+   * category runs on this origin, so applyChoices never reads it here.
    *
-   * RECORD_CATEGORIES is the shape of the shared record. All three keys are
-   * written on every save, whatever this origin shows, because the record is
-   * read by ipredicta.co and a key missing from it is not "unset", it is
-   * `undefined`, which the site's applyChoices() reads as false. Saving here
-   * would then silently switch off a member's affiliate-tracking choice made
-   * there. `marketing` keeps its key even though the site labels it "Affiliate
-   * tracking": the key is the wire format, the title is copy.
-   *
-   * APP_CATEGORIES is what a member is shown and asked about. One entry, because
-   * there is exactly one non-essential vendor on this origin. Adding a second
-   * means adding it to BOTH lists.
+   * APP_CATEGORIES is what a member is shown, copied from the site's CATEGORIES
+   * and held to it by tests/consent-parity.test.mjs.
    */
-  var RECORD_CATEGORIES = ['analytics', 'marketing', 'reviews'];
+  var RECORD_CATEGORIES = ['analytics', 'marketing'];
 
   var APP_CATEGORIES = [
     {
       key: 'analytics',
       vendors: ['Google LLC'],
       title: 'Analytics',
-      body: 'Google Analytics, so we can count visits and see which screens are used. ' +
+      body: 'Google Analytics, so we can count visits and see which pages are read. ' +
             'Sets two cookies on this domain that last about two years.'
+    },
+    {
+      key: 'marketing',
+      vendors: ['impact.com', 'Mocentric'],
+      title: 'Advertising and affiliate tracking',
+      body: 'Mocentric, our advertising agency, whose tag from Simpli.fi records that your browser has visited ' +
+            'iPredicta so that we can show iPredicta adverts to people who have been here before, and which counts daily ' +
+            'email sign-ups, and app store button clicks after one of its adverts, through Equativ, another advertising ' +
+            'platform it uses. And impact.com, ' +
+            'which records that a visit to a partner site came from here so the partner can attribute it ' +
+            '(home page only).'
     }
   ];
 
@@ -124,9 +138,7 @@
    * both are described in the panel rather than offered as a toggle that cannot
    * be turned off. */
 
-  // Every list of app-visible keys is derived, never enumerated a second time.
-  // Adding `reviews` to the site on 2026-08-17 broke four hardcoded
-  // {analytics, marketing} literals there; this avoids inheriting that shape.
+  // Every list of keys is derived from APP_CATEGORIES, never enumerated twice.
   function allAppCategories(value) {
     var o = {};
     APP_CATEGORIES.forEach(function (c) { o[c.key] = value; });
@@ -354,9 +366,9 @@
     // withdrawal stops future loads and takes effect fully on the next load. The
     // panel tells the member this in as many words.
     //
-    // `marketing` and `reviews` are intentionally not read here. Neither vendor
-    // is on this origin, so there is nothing for them to switch on, and a loader
-    // for a vendor that is not here would be the thing that quietly puts it here.
+    // `marketing` is intentionally not read here. None of its vendors is on this
+    // origin, so there is nothing for it to switch on, and a loader for a vendor
+    // that is not here would be the thing that quietly puts it here.
   }
 
   // ── The consent record ────────────────────────────────────────────────────
@@ -367,22 +379,11 @@
   // Article 7(1). consent_id is a random value with no meaning outside the
   // browser that holds it.
   //
-  // CHOICES THIS ORIGIN DOES NOT ASK ABOUT ARE CARRIED FORWARD, NOT DEFAULTED.
-  // This is the whole of requirement 2 and it is one line of logic with a large
-  // consequence: without it, a member who accepted affiliate tracking on
-  // ipredicta.co and then saved anything at all here would have that choice
-  // silently switched off, because the site reads a missing key as false.
-  //
-  // When there is no existing record the unasked categories are written false.
-  // That fails closed, which is the right direction, but it does mean a member
-  // whose first decision is made here is never offered the site's other two
-  // categories until they open Cookie settings on the site. Recorded in
-  // ROADMAP.md rather than worked around, because working around it means
-  // either changing the shared record shape or changing the site, and this brief
-  // allows neither.
+  // EVERY CATEGORY IS ASKED HERE (the owner, 24 Nov 2026), so every key is the
+  // member's answer. Until then this origin asked one category and carried the
+  // others forward from the existing record; nothing is carried forward now.
   function buildRecord(choices, method, existing) {
     var now = new Date();
-    var prior = (existing && existing.choices) || {};
     return {
       consent_id: (existing && existing.consent_id) || newConsentId(),
       policy_version: POLICY_VERSION,
@@ -394,14 +395,7 @@
       method: method,               // 'banner-accept' | 'banner-reject' | 'settings-save'
       choices: (function () {
         var out = {};
-        var asked = allAppCategories(false);
-        RECORD_CATEGORIES.forEach(function (key) {
-          if (Object.prototype.hasOwnProperty.call(asked, key)) {
-            out[key] = !!choices[key];          // asked here, so this origin decides it
-          } else {
-            out[key] = !!prior[key];            // not asked here, so preserve it
-          }
-        });
+        RECORD_CATEGORIES.forEach(function (key) { out[key] = !!choices[key]; });
         return out;
       })(),
       // The members area is a single URL, so this is always "/". Kept because
@@ -491,6 +485,9 @@
     '.ipc-toggle input:checked+.ipc-track{background:var(--blue)}',
     '.ipc-toggle input:checked+.ipc-track::after{transform:translateX(20px)}',
     '.ipc-panel-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}',
+    // THE SITE'S PHONE BANNER (its one-sentence text, 10 Oct 2026): the long text
+    // and heading give way to it on a narrow screen, as on ipredicta.co.
+    '.ipc-short{display:none}',
     '.ipc-note{font-size:.78rem;color:var(--text-light);line-height:1.55;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}',
     /* MOBILE. `flex:1 1 340px` on the text is right in a row and wrong in a
        column: stacked, it grows to eat the free space and pushes the buttons to
@@ -510,6 +507,7 @@
       '.ipc-banner{padding:14px 16px max(14px,env(safe-area-inset-bottom));max-height:70vh;overflow-y:auto}' +
       '.ipc-banner-inner{flex-direction:column;align-items:stretch;gap:14px}' +
       '.ipc-banner-text{flex:0 0 auto;min-width:0}' +
+      '.ipc-banner-text strong,.ipc-long{display:none}.ipc-short{display:inline}' +
       '.ipc-actions{width:100%}' +
       '.ipc-btn{flex:1 1 auto}' +
     '}'
@@ -541,21 +539,22 @@
     bannerEl.className = 'ipc-banner';
     bannerEl.setAttribute('role', 'region');
     bannerEl.setAttribute('aria-label', 'Cookie consent');
-    // COPY NAMES ONLY WHAT THIS ORIGIN SETS. The site's banner says "analytics
-    // and affiliate tracking"; saying that here would describe a vendor that is
-    // not on this origin and a toggle that is not in this panel.
+    // THE SITE'S WORDING, WORD FOR WORD (the owner, 24 Nov 2026), except "from
+    // Cookie settings under Settings": the site's "Cookie settings link in the
+    // footer" does not exist here. tests/consent-parity.test.mjs holds it.
     bannerEl.innerHTML =
       '<div class="ipc-banner-inner">' +
         '<div class="ipc-banner-text">' +
-          '<strong>Cookies in the members area</strong>' +
-          'We use essential cookies to keep you signed in and to remember this choice. ' +
-          'We would also like to set analytics cookies, but only if you agree. You can ' +
-          'change your mind at any time under Settings. ' +
+          '<strong>Cookies on iPredicta</strong>' +
+          '<span class="ipc-long">We use essential cookies to make the site work. We would also like to set ' +
+          'analytics, advertising and affiliate tracking cookies, but only if you agree. You can ' +
+          'change your mind at any time from Cookie settings under Settings. </span>' +
+          '<span class="ipc-short">Analytics, advertising and affiliate cookies only if you agree; change your mind any time in Cookie settings. </span>' +
           '<a href="' + esc(PRIVACY_URL) + '" target="_blank" rel="noopener">Read our privacy policy</a>.' +
         '</div>' +
         '<div class="ipc-actions">' +
-          '<button type="button" class="ipc-btn ipc-btn-accept" data-ipc="accept">Accept</button>' +
-          '<button type="button" class="ipc-btn ipc-btn-reject" data-ipc="reject">Reject</button>' +
+          '<button type="button" class="ipc-btn ipc-btn-accept" data-ipc="accept">Accept all</button>' +
+          '<button type="button" class="ipc-btn ipc-btn-reject" data-ipc="reject">Reject all</button>' +
           '<button type="button" class="ipc-btn ipc-btn-settings" data-ipc="settings">Settings</button>' +
         '</div>' +
       '</div>';
@@ -565,9 +564,7 @@
       var t = ev.target.closest('[data-ipc]');
       if (!t) return;
       var action = t.getAttribute('data-ipc');
-      // "Accept" and "Reject" cover the categories THIS ORIGIN ASKS ABOUT.
-      // buildRecord carries the rest of the record forward untouched, which is
-      // why these can safely be all-or-nothing over one category.
+      // "Accept all" and "Reject all" cover both categories, as on the site.
       if (action === 'accept') decide(allAppCategories(true), 'banner-accept');
       else if (action === 'reject') decide(allAppCategories(false), 'banner-reject');
       else if (action === 'settings') openPanel();
@@ -591,10 +588,7 @@
     var rec = readRecord();
     var current = (rec && rec.choices) || allAppCategories(false);
 
-    // APP_CATEGORIES, not RECORD_CATEGORIES. The other two keys are in the
-    // record and are not shown, not even as disabled toggles: a control a
-    // member cannot operate, over a vendor that is not on this origin, tells
-    // them something untrue about what this page does.
+    // The site's two categories, the same toggles as its panel.
     var rows = APP_CATEGORIES.map(function (c) {
       return '<div class="ipc-row">' +
         '<div class="ipc-row-main">' +
@@ -615,15 +609,14 @@
     panelEl.innerHTML =
       '<div class="ipc-panel-card" role="dialog" aria-modal="true" aria-labelledby="ipc-panel-title">' +
         '<h2 id="ipc-panel-title">Cookie settings</h2>' +
-        '<p class="ipc-panel-intro">Choose what we may set in the members area. Turning something ' +
-          'off here stops it loading from your next visit onwards. Full detail is in our ' +
+        '<p class="ipc-panel-intro">Choose what we may set. Turning something off here stops it ' +
+          'loading from your next page view onwards. Full detail is in our ' +
           '<a href="' + esc(PRIVACY_URL) + '" target="_blank" rel="noopener">privacy policy</a>.</p>' +
         '<div class="ipc-row">' +
           '<div class="ipc-row-main">' +
             '<h3>Essential</h3>' +
-            '<p>Needed for the members area to work, including keeping you signed in and the ' +
-               'record of the choice you make here. These are not used to track you and cannot ' +
-               'be switched off.</p>' +
+            '<p>Needed for the site to work, including the record of the choice you make here. ' +
+               'These are not used to track you and cannot be switched off.</p>' +
           '</div>' +
           '<span class="ipc-locked">Always on</span>' +
         '</div>' +
@@ -633,13 +626,8 @@
           '<button type="button" class="ipc-btn ipc-btn-reject" data-ipc="reject">Reject all</button>' +
           '<button type="button" class="ipc-btn ipc-btn-settings" data-ipc="close">Close</button>' +
         '</div>' +
-        // THIS SENTENCE IS LOAD-BEARING, not reassurance. The record is shared
-        // with ipredicta.co, so a member changing it here changes what happens
-        // there too, and they are entitled to know that before they save.
-        '<p class="ipc-note">This choice applies to iPredicta.co as well as the members area, ' +
-          'because we remember it once rather than asking you twice. Anything already loaded ' +
-          'before you changed this cannot be unloaded from the page you are on. Reload, or ' +
-          'carry on, and the new choice applies.</p>' +
+        '<p class="ipc-note">Anything already loaded before you changed this cannot be unloaded ' +
+          'from the page you are on. Reload, or carry on, and the new choice applies.</p>' +
       '</div>';
     document.body.appendChild(panelEl);
 

@@ -250,3 +250,32 @@ test('the client file never points at the site endpoint (blocked at preflight, s
   const src = fs.readFileSync(new URL('../public/assets/consent.js', import.meta.url), 'utf8');
   assert.ok(!/ipredicta\.co\/\.netlify\/functions\/consent-log['"]/.test(src.replace(/\/\/.*$/gm, '')));
 });
+
+// ── nobody is asked twice (the owner, 24 Nov 2026): a current site decision is taken as it stands ─────────────────────
+
+const siteCookie = (rec) => `ipredicta.consent.v1=${encodeURIComponent(JSON.stringify(rec))}`;
+const SITE_REC = { consent_id: 'site-1', policy_version: '2026-10-30.2', decided_at: '2026-11-20T10:00:00.000Z',
+  retention_month: '2026-11', method: 'banner-accept', choices: { analytics: false, marketing: true }, page_path: '/' };
+
+test('a current site decision: no banner, nothing written, nothing logged', () => {
+  const before = siteCookie(SITE_REC);
+  const env = loadConsent({ cookie: before });
+  assert.equal(env.window.iPredictaConsent.policyVersion, '2026-10-30.2');
+  assert.ok(!env.body.children.some((c) => c.className === 'ipc-banner'), 'no banner');
+  assert.equal(env.beacons.length, 0);
+  assert.equal(env.jar(), before, 'the shared record is left exactly as the site wrote it');
+});
+
+test('an older decision: the banner asks, and the answer is written under the site version with both categories', async () => {
+  const env = loadConsent({ cookie: siteCookie({ ...SITE_REC, policy_version: '2026-08-17.1', choices: { analytics: true, marketing: false, reviews: true } }) });
+  const { rec } = await clickBanner(env, 'accept');
+  assert.equal(rec.policy_version, '2026-10-30.2');
+  assert.deepEqual(rec.choices, { analytics: true, marketing: true });
+  assert.equal(rec.consent_id, 'site-1', 'the same browser keeps its consent_id');
+});
+
+test('Reject all sets both categories to no: nothing unasked is carried forward', async () => {
+  const env = loadConsent({ cookie: siteCookie({ ...SITE_REC, policy_version: '2026-08-17.1', choices: { analytics: true, marketing: true } }) });
+  const { rec } = await clickBanner(env, 'reject');
+  assert.deepEqual(rec.choices, { analytics: false, marketing: false });
+});
